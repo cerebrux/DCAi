@@ -516,10 +516,14 @@ This project integrates concepts from behavioral finance, machine learning, and 
     *   *Analyzes the mathematical properties of DCA compared to Lump Sum investing.*
 *   **Leggio, K. B., & Lien, D. (2001).** "Does Dollar Cost Averaging Make Sense?" *Financial Services Review*, 10(1), 73-86.
     *   *A critical assessment of DCA performance using risk-adjusted return metrics (Sortino/Sharpe).*
+*   **Cui, R., & Zhang, Y. (2023).** "SmartDCA: An Enhanced Dollar-Cost Averaging Strategy with Deep Reinforcement Learning." *arXiv:2308.05200*.
+    *   *Proposes dynamic position sizing adjustments to traditional DCA using reinforcement learning. Inspired DCAi's adaptive position weighting and Savings Pot concepts.*
 
 ## 2. Machine Learning & K-Nearest Neighbors
 *   **Fix, E., & Hodges, J. L. (1951).** "Discriminatory Analysis: Nonparametric Discrimination: Consistency Properties." *USAF School of Aviation Medicine*, Randolph Field, Texas.
     *   *The seminal paper that introduced the K-Nearest Neighbors (KNN) algorithm.*
+*   **Jaqobs (TradingView). (2022).** "Machine Learning: Lorentzian Classification." *TradingView Public Library*.
+    *   *Pioneering open-source implementation of KNN with Lorentzian distance metric for financial pattern recognition. Directly inspired DCAi's ML engine architecture and feature engineering approach.*
 *   **De Prado, M. L. (2018).** *Advances in Financial Machine Learning.* Wiley.
     *   *The industry standard reference for applying ML techniques to financial time-series data.*
 *   **Jansen, S. (2020).** *Machine Learning for Algorithmic Trading.* Packt Publishing.

@@ -6,9 +6,9 @@
 
 ---
 
-**Dadicated to all HODLers:**
+**Dedicated to long-term investors:**
 
-> *We don’t panic sell, we DCA the dips so hard they file a class‑action restraining order.*
+> *We don’t panic sell... we DCA the dips so hard they file a class‑action restraining order.*
 
 [![Donate](https://img.shields.io/badge/Donate-Support%20DCAi-brightgreen)](https://donate.utappia.org/)
 [![Contribute your Settings](https://img.shields.io/badge/Contribute-Share%20Settings-purple)](https://github.com/cerebrux/DCAi/discussions)
@@ -17,11 +17,11 @@
 
 ---
 ## Abstract
-**DCAi** is a machine learning-driven Dollar-Cost Averaging framework that combines K-Nearest Neighbors pattern recognition with a dynamic three-tier decision engine (Pullback, Oversold, Fear). 
+**DCAi** is a machine learning-driven Dollar-Cost Averaging framework that combines K-Nearest Neighbors pattern recognition with a dynamic three-tier decision engine (Pullback, Oversold, Fear).
 
-By implementing intelligent capital preservation through a Savings Pot and exponential position scaling (Rho), DCAi aims to achieve lower average entry prices and superior risk-adjusted returns through probabilistic pattern matching and confidence-gated signals. 
+It implements a Savings Pot (budget carryover) and exponential position scaling (Rho), with entries gated by probabilistic pattern matching and confidence thresholds.
 
-The strategy auto-calibrates for four asset classes (Crypto, Stocks, Indices, Commodities), enabling precision tuning of entry thresholds and position sizing to match each market's volatility characteristics.
+The strategy auto-calibrates for four asset classes (Crypto, Stocks, Indices, Commodities), adjusting entry thresholds and position sizing to match each market's volatility characteristics.
 
 ---
 
@@ -79,29 +79,29 @@ The strategy auto-calibrates for four asset classes (Crypto, Stocks, Indices, Co
 Traditional Dollar-Cost Averaging (DCA) is a passive strategy that executes purchases at fixed intervals regardless of market valuations. While psychologically effective for retail investors, it suffers from several mathematical inefficiencies:
 
 ### Problem 1: Wasted Capital During Sideways/Bull Markets
-**Issue**: Static DCA allocates the full monthly budget every period, regardless of market regime. During bull markets or sideways consolidation, this means deploying capital at progressively higher prices—missing the opportunity to accumulate more units during deep discounts (Black Swan crashes, capitulation events).
+**Issue**: Static DCA allocates the full monthly budget every period, regardless of market regime. During bull markets or sideways consolidation, this means deploying capital at progressively higher prices and missing opportunities to allocate more during large drawdowns.
 
-**Why This Matters**: If Bitcoin crashes 70% but your monthly allocation was already spent 30% higher, you've missed the chance to double down during extreme fear.
+**Why This Matters**: If price drops sharply after monthly capital is already deployed, fewer units are accumulated at lower prices.
 
-**DCAi Solution** (see **Section 4.1: Savings Pot**): Instead of forced monthly deployment, DCAi accumulates unused capital into a **Savings Pot**. When the ML engine detects a high-conviction reversal signal (Section 3: Decision Engine Logic), it deploys this reserve for aggressive entries. This transforms missed opportunities into compounding advantages.
+**DCAi Mechanism** (see **Section 4.1: Savings Pot**): Instead of forced monthly deployment, DCAi accumulates unused capital into a **Savings Pot**. When the ML engine detects a reversal signal (Section 3: Decision Engine Logic), it can deploy this reserve alongside the base budget.
 
 ---
 
 ### Problem 2: Uniform Position Sizing Ignores Volatility & Price Deviations
 **Issue**: Static DCA invests the same dollar amount every month, regardless of whether the asset is trading near all-time lows or all-time highs. This creates an *inverse* relationship between expected return and capital deployment—you buy more when valuations are worst... except in terms of Capital Exposure. While Static DCA buys more units mathematically, it fails to increase Fiat Capital allocation during deep discounts, treating a -5% dip and a -50% crash with the same financial urgency.
 
-**Why This Matters**: Asset volatility varies dramatically. A 20% drawdown on the S&P 500 is a 10-year event; a 20% daily swing on a micro-cap altcoin is Tuesday. Static DCA treats both identically.
+**Why This Matters**: Asset volatility varies dramatically across markets. Static DCA treats different volatility regimes identically.
 
-**DCAi Solution** (see **Section 4.2: Dynamic Position Sizing** and **Section 2.2: Adaptive Asset Sensitivity**): DCAi uses **Inverse-Price Weighting** with an exponential $\rho$ (Rho) parameter. As price falls relative to the historical average, buy sizes increase *exponentially*. The $\rho$ value is automatically adjusted per asset class to match volatility signatures (Crypto: 1.7, Stocks: 2.0, Indices: 2.5). This ensures you deploy aggressively during deep dips and conservatively during peaks.
+**DCAi Mechanism** (see **Section 4.2: Dynamic Position Sizing** and **Section 2.2: Adaptive Asset Sensitivity**): DCAi uses **Inverse-Price Weighting** with an exponential $\rho$ (Rho) parameter. As price falls relative to the historical average, buy sizes increase *exponentially*. The $\rho$ value is automatically adjusted per asset class to match volatility signatures (Crypto: 1.7, Stocks: 2.0, Indices: 2.5).
 
 ---
 
 ### Problem 3: Capital Exhaustion in Prolonged Bear Markets
-**Issue**: Static DCA commits all capital upfront on a predictable schedule. In a 3+ year bear market, this means your capital is fully deployed by Year 2, leaving nothing for the "generational bottom" that often occurs at the end of a cycle (e.g., crypto bear markets bottoming years after the bull peak).
+**Issue**: Static DCA commits all capital upfront on a predictable schedule. In prolonged bear markets, this can leave less capital available for later drawdowns.
 
-**Why This Matters**: Buy-and-hold investors who bought Bitcoin at $60K in 2021 had no reserves left to buy at $16K in 2022—despite both being part of the same DCA plan. The timing mismatch is devastating.
+**Why This Matters**: When large drawdowns arrive late in a cycle, fixed schedules may leave fewer funds available to allocate at those levels.
 
-**DCAi Solution** (see **Section 4.1: Savings Pot** and **Section 3: Decision Engine Logic**): The Savings Pot naturally preserves capital during non-signal periods. Additionally, the ML engine's three-tier decision framework (Tier 1 Pullback < Tier 2 Oversold < Tier 3 Fear) uses probabilistic gating to *reduce* entries during low-conviction periods and *concentrate* capital during high-conviction reversals. Combined with (see **Section 7.3: Pot Reserve %**), you can reserve a percentage of the pot for extreme-case deployments.
+**DCAi Mechanism** (see **Section 4.1: Savings Pot** and **Section 3: Decision Engine Logic**): The Savings Pot preserves capital during non-signal periods. The ML engine's three-tier decision framework (Tier 1 Pullback < Tier 2 Oversold < Tier 3 Fear) uses probabilistic gating to reduce entries during low-conviction periods and concentrate capital during higher-conviction reversals. Combined with (see **Section 7.3: Pot Reserve %**), a percentage of the pot can be reserved for extreme-case deployments.
 
 ---
 
@@ -111,7 +111,7 @@ Traditional Dollar-Cost Averaging (DCA) is a passive strategy that executes purc
 
 #### 2.1.1 How It Works
 
-DCAi searches historical price data to find past situations that match current market conditions. When the market looks oversold today, the algorithm scans back through thousands of historical bars to find the **K** most similar moments. It then checks what happened next—did price rally or keep falling?
+DCAi searches historical price data to find past situations that match current market conditions. When the market looks oversold today, the algorithm scans back through the configured lookback window to find the **K** most similar moments. It then checks what happened next—did price rally or keep falling?
 
 The **K parameter** controls how many historical examples to examine. K=5 means "find the 5 most similar past situations." If 4 out of 5 led to price increases, that's 80% confidence. Higher K values require more historical agreement before triggering a buy, making the system more conservative.
 
@@ -127,7 +127,7 @@ DCAi compares three metrics to identify similar market states:
 
 **Lorentzian Distance:**
 
-Standard distance metrics (Euclidean) treat a 50% crash as fundamentally different from a 40% crash. But in pattern recognition, both represent "severe capitulation" and should be grouped together. Lorentzian Distance uses logarithmic scaling to match patterns by shape and direction rather than absolute magnitude. A crash is a crash—the exact percentage matters less than the overall structure.
+Standard distance metrics (Euclidean) treat a 50% crash as fundamentally different from a 40% crash. Lorentzian Distance uses logarithmic scaling to match patterns by shape and direction rather than absolute magnitude.
 
 #### 2.1.2 Technical Summary
 
@@ -154,9 +154,9 @@ With a €50 monthly budget on Bitcoin:
 | -40% | €140 | €220 |
 | -60% | €300 | €580 |
 
-Lower Rho (1.5-1.7) suits volatile assets where -40% drawdowns happen frequently. Higher Rho (2.0-2.5) suits stable assets where deep dips are rare and should be exploited aggressively.
+Lower Rho (1.5-1.7) suits volatile assets where -40% drawdowns happen frequently. Higher Rho (2.0-2.5) suits stable assets where deep dips are rarer and position sizing can scale more during those periods.
 
-Crypto can stay oversold for months—a moderate Rho prevents premature capital exhaustion. Index crashes (2008, 2020) are generational events that warrant maximum deployment, hence higher Rho.
+Crypto can stay oversold for months—a moderate Rho can reduce premature capital exhaustion. Index crashes (2008, 2020) are rare events where higher Rho implies larger sizing during deep drawdowns.
 
 #### 2.2.2 Adaptive Thresholds by Asset Class
 
@@ -185,7 +185,7 @@ When you select an asset class, DCAi calibrates both the oversold threshold and 
 | **Rho (ρ)** | Position size scaling exponential | 1.7-2.5 by asset |
 | **ML Confidence** | Pattern match probability (%) | 70% min |
 
-DCAi compares current market conditions (MFI, ROC, ATR) against historical data to find similar patterns, verifies those patterns led to price increases, then scales position size based on dip severity and pattern confidence.
+DCAi compares current market conditions (MFI, ROC, ATR) against historical data to find similar patterns, checks whether those patterns were followed by short-term price increases, then scales position size based on dip severity and pattern confidence.
 
 ---
 
@@ -206,7 +206,7 @@ The strategy prioritizes trades into three distinct tiers based on signal convic
 ## 4. Financial Engineering & Budgeting
 
 ### 4.1 Smart Budgeting (The Savings Pot)
-If no buy signal is triggered within a calendar month, the monthly budget is automatically rolled over into a **Savings Pot**. This "carryover" mechanism allows for massive capital deployment during black swan events or extreme market lows.
+If no buy signal is triggered within a calendar month, the monthly budget is automatically rolled over into a **Savings Pot**. This "carryover" mechanism allows larger capital deployment during extreme market lows.
 
 ### 4.2 Dynamic Position Sizing
 The investment amount is calculated using an **Inverse-Price Weighting** formula:
@@ -219,14 +219,14 @@ The investment amount is calculated using an **Inverse-Price Weighting** formula
 ## 5. Comparative Analysis: Pros & Cons
 
 ### 5.1 Advantages of DCAi
-* **Dynamic Sensitivity**: Utilizes the $\rho$ parameter to exponentially increase buy size during extreme deviations.
-* **ML-Driven Confirmation**: The KNN engine filters out "falling knives" by requiring historical pattern similarity.
-* **Capital Preservation**: The **Savings Pot** ensures capital is preserved for high-probability reversal zones.
+* **Dynamic Sensitivity**: Utilizes the $\rho$ parameter to exponentially increase buy size during large deviations.
+* **ML-Driven Confirmation**: The KNN engine requires historical pattern similarity before signaling a buy.
+* **Capital Preservation**: The **Savings Pot** preserves capital for periods when signals occur.
 
 ### 5.2 Limitations & Risks
-* **Computational Overload**: KNN models in Pine Script are limited by the lookback window (max 3000 bars).
-* **Overfitting Risk**: Risk that Lorentzian distance parameters may overfit to recent price action.
-* **Execution Latency**: Relies on bar closes, which might result in slightly higher entries during fast V-shape recoveries.
+* **Computational Limits**: KNN models in Pine Script are limited by the lookback window (max 3000 bars).
+* **Overfitting Risk**: Lorentzian distance parameters may overfit to recent price action.
+* **Execution Latency**: Relies on bar closes, which may result in higher entries during fast recoveries.
 
 ---
 
@@ -238,15 +238,15 @@ The investment amount is calculated using an **Inverse-Price Weighting** formula
 ---
 ## 7. Configuration & Parameters
 
-DCAi offers a highly granular settings menu to align the algorithm with your specific risk profile and asset class.
+DCAi offers a configurable settings menu to align the algorithm with your risk profile and asset class.
 
 ![Settings Menu](images/dcai-settings.png)
 
 ### 7.1 Asset Selection & Auto-Optimization
 * **Asset Class**: Choose between `Crypto`, `Stocks`, `Indices`, or `Commodities`. This selection automatically adjusts:
     * **MFI Thresholds**: Tailored to the typical volatility of each sector.
-    * **Adaptive Sensitivity ($\rho$)**: Controls how aggressively the position size increases during dips.
-* **Auto-Optimize Parameters**: When enabled, the script ignores manual overrides and uses pre-calculated optimal values for the selected asset.
+    * **Adaptive Sensitivity ($\rho$)**: Controls how much the position size increases during dips.
+* **Auto-Optimize Parameters**: When enabled, the script ignores manual overrides and uses pre-set values for the selected asset.
 * **Manual Sensitivity ($\rho$)**: Overrides auto-optimization when auto is disabled.
 
 ### 7.2 Machine Learning Settings (KNN)
@@ -262,7 +262,7 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 * **Max Multiplier Cap**: Limits the maximum investment size for a single signal to prevent over-exposure.
 * **Strong Buy Boost**: Multiplier applied to oversold signals.
 * **Max Buy Boost**: Multiplier applied to fear signals.
-* **Pot Reserve (%)**: Portion of the savings pot held back for extreme dips.
+* **Pot Reserve (%)**: Portion of the savings pot held back for larger dips.
 * **Show Savings Pot Usage**: Displays pot usage labels on the chart when enabled.
 
 ### 7.4 Technical Confirmation (Filtering)
@@ -271,32 +271,32 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 
 ---
 
-### 7.5 Recommended Configurations
+### 7.5 Example Configurations
 
 Below are three pre-built profiles aligned with different risk tolerances and market conditions (see **Section 2.1** ML settings and **Section 3** decision tiers for context):
 
 #### **Profile A: CONSERVATIVE (Low Signal Frequency, Capital Preservation)**
-*Best for: Risk-averse investors, volatile assets (micro-caps), bear markets*
+*Typical use cases: Risk-averse investors, volatile assets (micro-caps), bear markets*
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | €50 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
+| **Monthly Budget** | €50 | Lower monthly spend; pot can accumulate over multiple months for larger entries |
 | **Auto-Optimize** | ✅ Enabled | Use asset-class defaults (Section 2.2) |
 | **Lookback Window** | 1500 | Shorter window = less noise, focuses on recent patterns |
 | **K-Neighbors** | 7-8 | Higher K = fewer false signals, more conservative voting |
-| **Probability Threshold** | 75% | Strict entry gate (only high-conviction ML signals) |
+| **Probability Threshold** | 75% | Strict entry gate (only higher-confidence ML signals) |
 | **ML Confidence Sensitivity** | 1.5 | Muted confidence scaling (avoid over-sizing on marginal signals) |
-| **Pot Reserve %** | 25% | Keep 25% for Black Swan events |
+| **Pot Reserve %** | 25% | Keep 25% for rare events |
 | **Strong Buy Boost** | 1.3x | Light multiplier (Tier 2) |
 | **Max Buy Boost** | 1.8x | Moderate multiplier (Tier 3) |
 | **Cooldown Period** | 15 bars | Longer wait between signals prevents over-trading |
 
-**Expected Behavior**: 1-3 signals/month, deeper drawdown reserve, higher avg entry quality
+**Expected Behavior**: 1-3 signals/month, deeper drawdown reserve, lower average entry prices vs. higher-frequency profiles
 
 ---
 
 #### **Profile B: BALANCED (Default – Medium Risk/Reward)**
-*Best for: Long-term investors, established assets (BTC/ETH, Index funds), 2-8 year horizons*
+*Typical use cases: Long-term investors, established assets (BTC/ETH, Index funds), 2-8 year horizons*
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
@@ -311,27 +311,27 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 | **Max Buy Boost** | 2.0x | Default fear multiplier (Tier 3, per Section 3) |
 | **Cooldown Period** | 10 bars | Standard multi-entry frequency |
 
-**Expected Behavior**: 3-6 signals/month, reasonable pot accumulation, balanced entries across tiers
+**Expected Behavior**: 3-6 signals/month, moderate pot accumulation, balanced entries across tiers
 
 ---
 
 #### **Profile C: AGGRESSIVE (High Frequency, Pot-Driven)**
-*Best for: Active investors, stable assets (large-cap stocks, top-tier crypto), bull/accumulation phases*
+*Typical use cases: Active investors, stable assets (large-cap stocks, top-tier crypto), bull/accumulation phases*
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | €150+ | Massive monthly burn accelerates pot growth (Section 4.1) |
-| **Auto-Optimize** | ✅ Enabled | Essential for volatile large positions |
-| **Lookback Window** | 2800 | Maximum window; captures all historical regimes |
-| **K-Neighbors** | 3-4 | Lower K = reactive signals, capitalizes on fast reversals |
-| **Probability Threshold** | 60% | Relaxed gate; accept marginal signals (Tier 1 pullbacks more common) |
-| **ML Confidence Sensitivity** | 2.5 | Aggressive scaling; high conviction → double position size |
-| **Pot Reserve %** | 5% | Minimal reserve; deploy nearly all pot capital |
-| **Strong Buy Boost** | 1.8x | Elevated oversold aggressiveness (Tier 2) |
-| **Max Buy Boost** | 2.5x | Maximum fear response (Tier 3) |
-| **Cooldown Period** | 5 bars | Allow rapid re-entry via decision tiers (Tier 1 pullback + Tier 3 fear same month) |
+| **Monthly Budget** | €150+ | Higher monthly budget accelerates pot growth (Section 4.1) |
+| **Auto-Optimize** | ✅ Enabled | Useful for volatile large positions |
+| **Lookback Window** | 2800 | Largest window; covers more historical data |
+| **K-Neighbors** | 3-4 | Lower K = more reactive signals, responds to faster reversals |
+| **Probability Threshold** | 60% | Relaxed gate; allows more signals (Tier 1 pullbacks more common) |
+| **ML Confidence Sensitivity** | 2.5 | Higher scaling; higher confidence increases position size |
+| **Pot Reserve %** | 5% | Lower reserve; deploy more pot capital |
+| **Strong Buy Boost** | 1.8x | Higher oversold sizing (Tier 2) |
+| **Max Buy Boost** | 2.5x | Higher fear sizing (Tier 3) |
+| **Cooldown Period** | 5 bars | Allow quicker re-entry via decision tiers (Tier 1 pullback + Tier 3 fear same month) |
 
-**Expected Behavior**: 8-15+ signals/month, rapid pot depletion/replenishment cycles, early entries into dips
+**Expected Behavior**: 8-15+ signals/month, faster pot depletion/replenishment cycles, earlier entries into dips
 
 ---
 
@@ -342,9 +342,9 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 #### **Step 1: Establish Your Baseline (Week 1)**
 1. Start with **Profile B (Balanced)** for your asset class
 2. Run the indicator live or backtest for 1-2 weeks (`Start Date` → `End Date` in Section 7.3)
-3. Record: number of signals, average entry price, portfolio growth, drawdown
+3. Record: number of signals, average entry price, portfolio change, drawdown
 
-**Metric to Track**: *Signal Frequency* = signals/month (target: 3-8 for balanced)
+**Metric to Track**: *Signal Frequency* = signals/month (typical range: 3-8 for balanced)
 
 ---
 
@@ -352,29 +352,29 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 | If You See... | Root Cause | Adjustment |
 |:---|:---|:---|
-| **Too Few Signals** (<1/month) | ML too strict, Lookback outdated, Or asset in strong trend with no dips | Decrease `Probability Threshold` by 5% OR increase `K-Neighbors` (paradoxically makes voting easier) OR shorter `Lookback Window` |
+| **Too Few Signals** (<1/month) | ML too strict, Lookback outdated, or asset in strong trend with no dips | Decrease `Probability Threshold` by 5% OR increase `K-Neighbors` (which can make voting easier) OR shorter `Lookback Window` |
 | **Too Many Signals** (>15/month) | ML too loose, or extreme volatility | Increase `Probability Threshold` by 5-10% OR lower `K-Neighbors` (stricter voting) |
 | **Signals Cluster (3+ same day)** | `Cooldown Period` active across all tiers; Tier 1 blocks Tier 2/3 | Decrease `Cooldown Period` to 5-7 bars OR increase `Probability Threshold` to reduce Tier 1 frequency |
 | **Pot Never Accumulates** | Too many monthly signals, money spent without pause | Increase `Probability Threshold` OR longer `Cooldown Period` |
 | **Pot Accumulates But Never Deployed** | No high-conviction signals in your timeframe; conservative ML | Decrease `Probability Threshold` by 10% OR increase `ML Confidence Sensitivity` to scale smaller signals larger |
 
-**Action**: Adjust ONE parameter per week and re-test 2+ weeks of data before next change.
+**Action**: Adjust one parameter per week and re-test at least 2 weeks of data before the next change.
 
 ---
 
 #### **Step 3: Risk Profile Alignment (Week 4)**
 
-**If you want MORE capital at risk during dips:**
-- Increase `Monthly Budget` (more monthly salary → bigger entries)
+**If you want more capital at risk during dips:**
+- Increase `Monthly Budget` (larger monthly budget → bigger entries)
 - Increase `Strong Buy Boost` and `Max Buy Boost` (Section 3 tiers 2-3)
 - Decrease `Pot Reserve %` (deploy more reserve capital)
-- Decrease `ML Confidence Sensitivity` (even low-conviction signals get sized larger)
+- Decrease `ML Confidence Sensitivity` (even lower-confidence signals get sized larger)
 
-**If you want LESS capital at risk (capital preservation):**
+**If you want less capital at risk (capital preservation):**
 - Decrease `Monthly Budget`
 - Decrease `Strong Buy Boost` and `Max Buy Boost`
 - Increase `Pot Reserve %` (10-30%)
-- Increase `ML Confidence Sensitivity` (only confident signals get sized larger)
+- Increase `ML Confidence Sensitivity` (only higher-confidence signals get sized larger)
 - Increase `Probability Threshold` (gate more entries)
 
 ---
@@ -382,8 +382,8 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 #### **Step 4: Asset-Specific Tuning (Ongoing)**
 
 **Crypto (BTC/ETH):** Auto Rho = 1.7 (Section 2.2)
-- Crypto stays oversold for weeks; increase `Probability Threshold` to 75% to filter noise
-- Larger daily swings justify higher `Monthly Budget` (€100+)
+- Crypto can stay oversold for weeks; increase `Probability Threshold` to 75% to filter noise
+- Larger daily swings may justify a higher `Monthly Budget` (€100+)
 - Use Profile C settings or tune conservatively within Profile B
 
 **Stocks (Tech, Blue-Chip):** Auto Rho = 2.0
@@ -407,14 +407,14 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 1. **Backtest** (TradingView Pine Editor): Set `Start Date` 6+ months ago, run indicator
    - Compare DCAi portfolio (avg entry, ROI) vs. monthly passive DCA benchmark
-   - DCAi should have **lower average entry price** and **similar or higher returns** (Section 1 advantages)
+    - DCAi aims for a **lower average entry price** and **similar or higher returns** relative to the passive benchmark
 
 2. **Live Paper Trading** (1-2 weeks): Run on live chart without capital
-   - Verify signals align with visual support/resistance
-   - Check Ichimoku clouds (Tier 1 Pullback validation, Section 3)
-   - Confirm ML confidence % is rising into dips (Section 2.1)
+    - Review how signals align with recent price structure
+    - Check Ichimoku clouds (Tier 1 Pullback validation, Section 3)
+    - Observe how ML confidence changes into dips (Section 2.1)
 
-3. **Full-Size Live** (after 2+ weeks confidence): Deploy real capital
+3. **Full-Size Live** (after at least 2 weeks confidence): Deploy real capital
    - Start with smallest `Monthly Budget` tier (€25-50)
    - Scale up only if metrics align (lower avg entry, good entry quality)
 
@@ -422,10 +422,10 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 #### **Red Flags: When to Reset Settings**
 
-- **Average entry price is HIGHER than blind DCA**: ML settings too loose, increase `Probability Threshold` by 10%+
+- **Average entry price is higher than blind DCA**: ML settings too loose, increase `Probability Threshold` by 10%+
 - **Portfolio never catches dips (<2 Tier 2/3 entries/year in volatile market)**: Decrease `Probability Threshold`, increase `K-Neighbors`, or double `Monthly Budget`
 - **Drawdown exceeds 50% through no fault of market**: `Max Buy Boost` too aggressive; reduce to 1.5-2.0x, or increase `Pot Reserve %`
-- **Pot grows to 10x+ monthly budget and never deploys**: Increase `Probability Threshold` is backwards; actually *decrease* it to trigger more deployments
+- **Pot grows to 10x+ monthly budget and never deploys**: Increasing `Probability Threshold` is likely counterproductive; decrease it to trigger more deployments
 
 ---
 
@@ -446,7 +446,7 @@ These parameters work together. Changing one affects optimal values of others:
 
 ### 7.8 Community Settings & Contributions
 
-**We want to hear from you!** If you've optimized DCAi for your specific use case and achieved strong results, please share your configuration with the community in the **[GitHub Discussions](https://github.com/cerebrux/DCAi/discussions)** section.
+**We want to hear from you!** If you've optimized DCAi for your specific use case and want to share your configuration, please post it in the **[GitHub Discussions](https://github.com/cerebrux/DCAi/discussions)** section.
 
 #### **What to Share:**
 When posting your settings, please include the following context to help others evaluate whether your configuration matches their needs:
@@ -466,8 +466,8 @@ When posting your settings, please include the following context to help others 
 #### **Why Share Your Settings?**
 - **Real-world validation**: Community testing covers market conditions no single backtest can simulate
 - **Asset-specific optimization**: Users trading similar assets benefit from your discoveries
-- **Edge cases**: Unusual assets (high-vol small-caps, seasonal commodities) need tuning beyond default profiles
-- **Collective refinement**: Best configurations emerge through collaboration, not isolation
+- **Edge cases**: Unusual assets (high-vol small-caps, seasonal commodities) may need tuning beyond default profiles
+- **Collective refinement**: Useful configurations emerge through collaboration
 
 #### **Contributing Your Settings:**
 1. Navigate to **[GitHub Discussions → Share Your Settings](https://github.com/cerebrux/DCAi/discussions)**
@@ -488,7 +488,7 @@ When posting your settings, please include the following context to help others 
 **A:** Euclidean distance amplifies outliers. A 50% crash and a 40% crash would be treated as fundamentally different patterns despite both representing severe capitulation. Lorentzian Distance uses logarithmic scaling to match patterns by structural shape rather than absolute magnitude, making it more robust for financial data with frequent spikes and crashes.
 
 ### Q3: Is DCAi suitable for Day Trading or Scalping?
-**A:** No. DCAi is an investment-grade framework designed for **Swing Traders** and **Long-term Investors**. It performs best on Daily (D) or Weekly (W) timeframes. Using it on low timeframes (e.g., 1-minute or 5-minute) may result in excessive signals caused by market noise, leading to premature capital exhaustion.
+**A:** DCAi is designed for **Swing Traders** and **Long-term Investors**. It is intended for Daily (D) or Weekly (W) timeframes. Using it on low timeframes (e.g., 1-minute or 5-minute) can result in excessive signals caused by market noise, leading to quicker capital deployment.
 
 ### Q4: What exactly does the Sensitivity ($\rho$) parameter control?
 **A:** The $\rho$ (Rho) parameter determines how aggressively the algorithm scales its position size relative to price drops. 
@@ -502,7 +502,7 @@ When posting your settings, please include the following context to help others 
 **A:** Yes, you are permitted to do so under the **AGPL-3.0 License**. However, the "Network Interaction" clause of the AGPL states that if you run a modified version of this script on a server (SaaS), you **must** make your modified source code available to the users of that service.
 
 ### Q7: Does the ML engine "repaint"?
-**A:** No. The KNN classification is calculated on bar closes. Once a bar is confirmed and the signal is printed, the historical pattern matching for that specific point in time remains fixed. This ensures that backtesting results are representative of real-world performance.
+**A:** No. The KNN classification is calculated on bar closes. Once a bar is confirmed and the signal is printed, the historical pattern matching for that specific point in time remains fixed. This helps align backtesting results with bar-close behavior.
 
 ---
 ## 9. References & Academic Foundation

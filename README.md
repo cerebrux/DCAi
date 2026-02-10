@@ -20,6 +20,48 @@
 ---
 
 ![DCAi](images/btcusdc-scrnsht-dcai.png)
+
+---
+
+## Table of Contents
+
+1. [The Inefficiency of Static DCA](#1-the-inefficiency-of-static-dca)
+   - [Problem 1: Wasted Capital During Sideways/Bull Markets](#problem-1-wasted-capital-during-sidewaysbull-markets)
+   - [Problem 2: Uniform Position Sizing Ignores Volatility](#problem-2-uniform-position-sizing-ignores-volatility--price-deviations)
+   - [Problem 3: Capital Exhaustion in Prolonged Bear Markets](#problem-3-capital-exhaustion-in-prolonged-bear-markets)
+
+2. [Core Architecture](#2-core-architecture)
+   - [2.1 Machine Learning Engine (KNN)](#21-machine-learning-engine-knn)
+   - [2.2 Adaptive Asset Sensitivity](#22-adaptive-asset-sensitivity)
+
+3. [Decision Engine Logic](#3-decision-engine-logic)
+
+4. [Financial Engineering & Budgeting](#4-financial-engineering--budgeting)
+   - [4.1 Smart Budgeting (The Savings Pot)](#41-smart-budgeting-the-savings-pot)
+   - [4.2 Dynamic Position Sizing](#42-dynamic-position-sizing)
+
+5. [Comparative Analysis: Pros & Cons](#5-comparative-analysis-pros--cons)
+   - [5.1 Advantages of DCAi](#51-advantages-of-dcai)
+   - [5.2 Limitations & Risks](#52-limitations--risks)
+
+6. [Future Research & Roadmap](#6-future-research--roadmap)
+
+7. [Configuration & Parameters](#7-configuration--parameters)
+   - [7.1 Asset Selection & Auto-Optimization](#71-asset-selection--auto-optimization)
+   - [7.2 Machine Learning Settings (KNN)](#72-machine-learning-settings-knn)
+   - [7.3 Financial Parameters (Budgeting)](#73-financial-parameters-budgeting)
+   - [7.4 Technical Confirmation (Filtering)](#74-technical-confirmation-filtering)
+   - [7.5 Recommended Configurations](#75-recommended-configurations)
+   - [7.6 Parameter Tuning & Optimization Guide](#76-parameter-tuning--optimization-guide)
+   - [7.7 Parameter Interactions & Dependencies](#77-parameter-interactions--dependencies)
+   - [7.8 Community Settings & Contributions](#78-community-settings--contributions)
+
+8. [Frequently Asked Questions (FAQ)](#8-frequently-asked-questions-faq)
+
+9. [References & Academic Foundation](#9-references--academic-foundation)
+
+10. [Disclaimer & Risk Warning](#10-disclaimer--risk-warning)
+
 ---
 
 ## 1. The Inefficiency of Static DCA

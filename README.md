@@ -30,7 +30,7 @@ The system utilizes a non-parametric ML model to identify historical price "bott
 * **Feature Engineering**: The model normalizes three key market dimensions: Money Flow Index (MFI), Rate of Change (ROC), and Average True Range (ATR) into percentile ranks.
 * **Distance Metric**: It employs **Lorentzian Distance**, a robust metric that uses log-based damping to ensure large feature variations do not distort pattern matching.
 * **Classification**: The model finds the $K$ closest historical neighbors to predict the probability of a bullish outcome over a 4-bar forward-looking window.
-* **Confidence Use**: The ML probability is used as a confidence score. It gates entries (minimum threshold) and scales position sizing via a confidence multiplier and savings pot usage, so higher confidence leads to more aggressive deployment while low confidence reduces or blocks buys.
+* **Confidence Use**: The ML probability functions as a confidence score. It gates entries (minimum threshold) and scales position sizing via a confidence multiplier and savings pot usage; higher confidence increases deployment, while low confidence reduces or blocks entries.
 
 ### 2.2 Adaptive Asset Sensitivity
 DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based on the selected asset class:
@@ -47,14 +47,14 @@ DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based 
 ## 3. Decision Engine Logic
 The strategy prioritizes trades into three distinct tiers based on signal conviction and liquidity availability:
 
-1.  **Tier 1: FEAR BUY (Extreme Panic)**
-    * Triggered when MFI is below the "Panic" threshold (default 20), with dynamic relaxation when CVD divergence is bullish.
-    * Uses a **Max Multiplier** and aggressive pot allocation.
+1.  **Tier 1: PULLBACK BUY (Trend Following)**
+    * Occurs in healthy uptrends when price trades in the "discount zone" below the Ichimoku Kijun-sen, above Leading Span B, and the cloud is green.
 2.  **Tier 2: OVERSOLD BUY (Standard Dip)**
-    * Triggered in oversold conditions (MFI < 35), with dynamic relaxation when CVD divergence is bullish, and ML confirmation.
+    * Activated in oversold conditions (MFI < 35), with dynamic relaxation when CVD divergence is bullish, and ML confirmation.
     * Uses a **Strong Boost** multiplier (default 1.5x).
-3.  **Tier 3: PULLBACK BUY (Trend Following)**
-    * Occurs in healthy uptrends when the price is in the "discount zone" below the Ichimoku Kijun-sen, above Leading Span B, and the cloud is green.
+3.  **Tier 3: FEAR BUY (Extreme Panic)**
+    * Activated when MFI falls below the "Panic" threshold (default 20), with dynamic relaxation when CVD divergence is bullish.
+    * Uses a **Max Multiplier** and aggressive pot allocation.
 
 ---
 
@@ -106,7 +106,7 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 ### 7.2 Machine Learning Settings (KNN)
 * **Lookback Window**: Number of historical bars (up to 3000) the ML model uses to find similar patterns.
 * **K-Neighbors**: The number of "nearest neighbors" compared (default is 10).
-* **Probability Threshold**: The minimum ML confidence required to trigger a buy signal (defaults to 70% for strong signals and 50% for pullback entries).
+* **Probability Threshold**: The minimum ML confidence required to trigger an entry signal (defaults to 70% for strong signals and 50% for pullback entries).
 
 ### 7.3 Financial Parameters (Budgeting)
 * **Monthly Budget**: Your total investable capital per month.

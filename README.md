@@ -1,7 +1,5 @@
 # DCAi: Machine Learning Based DCA Strategy
 
-![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)
-
 <div align="center">
   <img src="images/dcai-logo.png" width="150" alt="DCAi Logo">
 </div>
@@ -12,6 +10,9 @@
 
 > *We don’t panic sell, we DCA the dips so hard they file a class‑action restraining order.*
 
+[![Donate](https://img.shields.io/badge/Donate-Support%20DCAi-brightgreen)](https://donate.utappia.org/)
+![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)
+![Pine Script](https://img.shields.io/badge/Pine%20Script-v6.0-green.svg)
 ---
 ## Abstract
 **DCAi** is a high-fidelity algorithmic trading framework designed to optimize the traditional Dollar-Cost Averaging (DCA) methodology. By integrating **K-Nearest Neighbors (KNN)** classification with **Lorentzian Distance** and adaptive budget allocation, the strategy aims to lower the average entry price while managing downside risk more effectively than "blind" passive investing.

@@ -329,6 +329,41 @@ These parameters work together. Changing one affects optimal values of others:
 
 ---
 
+### 7.8 Community Settings & Contributions
+
+**We want to hear from you!** If you've optimized DCAi for your specific use case and achieved strong results, please share your configuration with the community in the **[GitHub Discussions](https://github.com/cerebrux/DCAi/discussions)** section.
+
+#### **What to Share:**
+When posting your settings, please include the following context to help others evaluate whether your configuration matches their needs:
+
+- **Asset & Ticker**: What are you trading? (e.g., BTC/USDT, SPY, Gold futures)
+- **Timeframe**: Daily (D), Weekly (W), or other?
+- **Market Regime**: Bull market, bear market, accumulation phase, or full cycle test?
+- **Profile Base**: Which recommended profile (A/B/C) did you start from?
+- **Modified Parameters**: List the key settings you changed from the base profile
+- **Performance Metrics** (optional but valuable):
+  - Average entry price vs. blind DCA benchmark
+  - Signal frequency (signals/month)
+  - Pot accumulation behavior
+  - Drawdown management
+  - Time period tested (backtested or live)
+
+#### **Why Community Settings Matter:**
+- **Real-World Validation**: Community-tested configurations provide empirical evidence across different market conditions that no single backtester can simulate
+- **Asset-Specific Optimization**: Other users trading the same or similar assets can benefit from your parameter discoveries
+- **Edge Case Discovery**: Unusual asset behaviors (e.g., high-volatility small-caps, commodity seasonality) require specialized tuning that the default profiles may not cover
+- **Collective Intelligence**: The best configurations often emerge from collaborative refinement rather than isolated optimization
+
+#### **Contributing Your Settings:**
+1. Navigate to **[GitHub Discussions → Share Your Settings](https://github.com/cerebrux/DCAi/discussions)**
+2. Create a new discussion post with a descriptive title (e.g., "BTC Daily - Conservative Bear Market Profile")
+3. Use the template format above to provide context
+4. Optional: Include screenshots of your backtest results or key signals
+
+**Note**: All shared configurations are community-contributed and not officially endorsed. Always backtest and paper trade any community settings before deploying real capital (see **Section 7.6, Step 5** for validation methodology).
+
+---
+
 ## 8. Frequently Asked Questions (FAQ)
 
 ### Q1: How does the "Savings Pot" work in practice?

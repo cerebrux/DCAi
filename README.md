@@ -25,9 +25,30 @@
 ## 1. The Inefficiency of Static DCA
 Traditional Dollar-Cost Averaging (DCA) is a passive strategy that executes purchases at fixed intervals regardless of market valuations. While psychologically effective for retail investors, it suffers from several mathematical inefficiencies:
 
-* **Opportunity Cost of Capital**: Static DCA fails to capitalize on deep market discounts (Black Swan events), allocating the same capital at "all-time highs" and "local bottoms."
-* **Linear Exposure**: It leads to a suboptimal average entry price in highly volatile markets, as it does not scale exposure relative to historical standard deviations.
-* **Fixed Exhaustion**: During prolonged bear markets, static DCA may exhaust capital too early, missing the ultimate "generational bottom."
+### Problem 1: Wasted Capital During Sideways/Bull Markets
+**Issue**: Static DCA allocates the full monthly budget every period, regardless of market regime. During bull markets or sideways consolidation, this means deploying capital at progressively higher prices—missing the opportunity to accumulate more units during deep discounts (Black Swan crashes, capitulation events).
+
+**Why This Matters**: If Bitcoin crashes 70% but your monthly allocation was already spent 30% higher, you've missed the chance to double down during extreme fear.
+
+**DCAi Solution** (see **Section 4.1: Savings Pot**): Instead of forced monthly deployment, DCAi accumulates unused capital into a **Savings Pot**. When the ML engine detects a high-conviction reversal signal (Section 3: Decision Engine Logic), it deploys this reserve for aggressive entries. This transforms missed opportunities into compounding advantages.
+
+---
+
+### Problem 2: Uniform Position Sizing Ignores Volatility & Price Deviations
+**Issue**: Static DCA invests the same dollar amount every month, regardless of whether the asset is trading near all-time lows or all-time highs. This creates an *inverse* relationship between expected return and capital deployment—you buy more when valuations are worst... except in terms of Capital Exposure. While Static DCA buys more units mathematically, it fails to increase Fiat Capital allocation during deep discounts, treating a -5% dip and a -50% crash with the same financial urgency.
+
+**Why This Matters**: Asset volatility varies dramatically. A 20% drawdown on the S&P 500 is a 10-year event; a 20% daily swing on a micro-cap altcoin is Tuesday. Static DCA treats both identically.
+
+**DCAi Solution** (see **Section 4.2: Dynamic Position Sizing** and **Section 2.2: Adaptive Asset Sensitivity**): DCAi uses **Inverse-Price Weighting** with an exponential $\rho$ (Rho) parameter. As price falls relative to the historical average, buy sizes increase *exponentially*. The $\rho$ value is automatically adjusted per asset class to match volatility signatures (Crypto: 1.7, Stocks: 2.0, Indices: 2.5). This ensures you deploy aggressively during deep dips and conservatively during peaks.
+
+---
+
+### Problem 3: Capital Exhaustion in Prolonged Bear Markets
+**Issue**: Static DCA commits all capital upfront on a predictable schedule. In a 3+ year bear market, this means your capital is fully deployed by Year 2, leaving nothing for the "generational bottom" that often occurs at the end of a cycle (e.g., crypto bear markets bottoming years after the bull peak).
+
+**Why This Matters**: Buy-and-hold investors who bought Bitcoin at $60K in 2021 had no reserves left to buy at $16K in 2022—despite both being part of the same DCA plan. The timing mismatch is devastating.
+
+**DCAi Solution** (see **Section 4.1: Savings Pot** and **Section 3: Decision Engine Logic**): The Savings Pot naturally preserves capital during non-signal periods. Additionally, the ML engine's three-tier decision framework (Tier 1 Pullback < Tier 2 Oversold < Tier 3 Fear) uses probabilistic gating to *reduce* entries during low-conviction periods and *concentrate* capital during high-conviction reversals. Combined with (see **Section 7.3: Pot Reserve %**), you can reserve a percentage of the pot for extreme-case deployments.
 
 ---
 

@@ -17,7 +17,11 @@
 
 ---
 ## Abstract
-**DCAi** is a high-fidelity algorithmic trading framework designed to optimize the traditional Dollar-Cost Averaging (DCA) methodology. By integrating **K-Nearest Neighbors (KNN)** classification with **Lorentzian Distance** and adaptive budget allocation, the strategy aims to lower the average entry price while managing downside risk more effectively than "blind" passive investing.
+**DCAi** is a machine learning-driven Dollar-Cost Averaging framework that combines K-Nearest Neighbors pattern recognition with a dynamic three-tier decision engine (Pullback, Oversold, Fear). 
+
+By implementing intelligent capital preservation through a Savings Pot and exponential position scaling (Rho), DCAi aims to achieve lower average entry prices and superior risk-adjusted returns through probabilistic pattern matching and confidence-gated signals. 
+
+The strategy auto-calibrates for four asset classes (Crypto, Stocks, Indices, Commodities), enabling precision tuning of entry thresholds and position sizing to match each market's volatility characteristics.
 
 ---
 

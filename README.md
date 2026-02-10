@@ -1,5 +1,7 @@
 # DCAi: Machine Learning Based DCA Strategy
 
+**Languages:** [English](README.md) | [Ελληνικά](README.el.md)
+
 <div align="center">
   <img src="images/dcai-logo.png" width="150" alt="DCAi Logo">
 </div>
@@ -203,7 +205,7 @@ The strategy prioritizes trades into three distinct tiers based on signal convic
 
 ---
 
-## 4. Financial Engineering & Budgeting
+## 4. Budgeting
 
 ### 4.1 Smart Budgeting (The Savings Pot)
 If no buy signal is triggered within a calendar month, the monthly budget is automatically rolled over into a **Savings Pot**. This "carryover" mechanism allows larger capital deployment during extreme market lows.
@@ -339,10 +341,12 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 Fine-tuning DCAi for your specific asset and market regime requires systematic testing. Use this guide to iterate from a base profile:
 
-#### **Step 1: Establish Your Baseline (Week 1)**
+#### **Step 1: Establish Your Baseline (Weeks 1-4)**
 1. Start with **Profile B (Balanced)** for your asset class
-2. Run the indicator live or backtest for 1-2 weeks (`Start Date` → `End Date` in Section 7.3)
-3. Record: number of signals, average entry price, portfolio change, drawdown
+2. Run the indicator **live or backtest for 1-3 months minimum** (`Start Date` → `End Date` in Section 7.3)
+   - Profile A/B typically generate 1-6 signals/month—shorter periods lack statistical significance
+   - 1-3 months provides 3-18 signals for proper evaluation
+3. Record: number of signals, average entry price, portfolio change, drawdown, Sortino ratio
 
 **Metric to Track**: *Signal Frequency* = signals/month (typical range: 3-8 for balanced)
 
@@ -403,20 +407,25 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 ---
 
-#### **Step 5: Backtesting & Live Validation (Weeks 5-12)**
+#### **Step 5: Backtesting & Live Validation (Weeks 5-24)**
 
-1. **Backtest** (TradingView Pine Editor): Set `Start Date` 6+ months ago, run indicator
-   - Compare DCAi portfolio (avg entry, ROI) vs. monthly passive DCA benchmark
-    - DCAi aims for a **lower average entry price** and **similar or higher returns** relative to the passive benchmark
+1. **Extended Backtest** (TradingView Pine Editor): Set `Start Date` **6-12 months ago** (minimum 1 full market cycle), run indicator
+   - Generate **12-72+ signals** for statistically robust comparison
+   - Compare DCAi portfolio (avg entry, ROI, Sortino) vs. monthly passive DCA benchmark
+   - DCAi aims for a **lower average entry price** and **similar or higher returns** relative to the passive benchmark
+   - Record: How many Tier 1 (pullback) vs. Tier 2/3 (oversold/fear) signals? Are they clustered by market regime?
 
-2. **Live Paper Trading** (1-2 weeks): Run on live chart without capital
-    - Review how signals align with recent price structure
-    - Check Ichimoku clouds (Tier 1 Pullback validation, Section 3)
-    - Observe how ML confidence changes into dips (Section 2.1)
+2. **Live Paper Trading** (2-4 weeks minimum): Run on live chart without capital
+   - Let at least **1-2 actual signals fire** during paper trading (not backtested)
+   - Review how signals align with recent price structure and your thesis
+   - Check Ichimoku clouds (Tier 1 Pullback validation, Section 3)
+   - Observe how ML confidence (%) behaves into dips vs. recoveries (Section 2.1)
+   - Validate portfolio tracking and Savings Pot accumulation logic
 
-3. **Full-Size Live** (after at least 2 weeks confidence): Deploy real capital
+3. **Full-Size Live** (after at least 4 weeks confidence, post-paper): Deploy real capital
    - Start with smallest `Monthly Budget` tier (€25-50)
-   - Scale up only if metrics align (lower avg entry, good entry quality)
+   - Run for **at least 2-3 full months** (to capture signal variance)
+   - Scale up only if metrics align: lower avg entry, good entry quality, Sortino ratio positive
 
 ---
 

@@ -32,7 +32,12 @@
 
 2. [Core Architecture](#2-core-architecture)
    - [2.1 Machine Learning Engine (KNN)](#21-machine-learning-engine-knn)
+     - [2.1.1 How It Works](#211-how-it-works)
+     - [2.1.2 Technical Summary](#212-technical-summary)
    - [2.2 Adaptive Asset Sensitivity](#22-adaptive-asset-sensitivity)
+     - [2.2.1 The Rho (ρ) Sensitivity Parameter](#221-the-rho-ρ-sensitivity-parameter)
+     - [2.2.2 Adaptive Thresholds by Asset Class](#222-adaptive-thresholds-by-asset-class)
+   - [2.3 Quick Reference](#23-quick-reference)
 
 3. [Decision Engine Logic](#3-decision-engine-logic)
 
@@ -97,22 +102,84 @@ Traditional Dollar-Cost Averaging (DCA) is a passive strategy that executes purc
 ## 2. Core Architecture
 
 ### 2.1 Machine Learning Engine (KNN)
-The system utilizes a non-parametric ML model to identify historical price "bottoms".
 
-* **Feature Engineering**: The model normalizes three key market dimensions: Money Flow Index (MFI), Rate of Change (ROC), and Average True Range (ATR) into percentile ranks.
-* **Distance Metric**: It employs **Lorentzian Distance**, a robust metric that uses log-based damping to ensure large feature variations do not distort pattern matching.
-* **Classification**: The model finds the $K$ closest historical neighbors to predict the probability of a bullish outcome over a 4-bar forward-looking window.
-* **Confidence Use**: The ML probability functions as a confidence score. It gates entries (minimum threshold) and scales position sizing via a confidence multiplier and savings pot usage; higher confidence increases deployment, while low confidence reduces or blocks entries.
+#### 2.1.1 How It Works
+
+DCAi searches historical price data to find past situations that match current market conditions. When the market looks oversold today, the algorithm scans back through thousands of historical bars to find the **K** most similar moments. It then checks what happened next—did price rally or keep falling?
+
+The **K parameter** controls how many historical examples to examine. K=5 means "find the 5 most similar past situations." If 4 out of 5 led to price increases, that's 80% confidence. Higher K values require more historical agreement before triggering a buy, making the system more conservative.
+
+**The Three Market Conditions (Features):**
+
+DCAi compares three metrics to identify similar market states:
+
+1. **Money Flow Index (MFI)** — Measures buying vs. selling pressure on a 0-100 scale. Values below 20 indicate panic selling, above 80 suggests euphoric buying. DCAi targets oversold zones between 0-55 depending on the asset.
+
+2. **Rate of Change (ROC)** — Tracks price velocity. Negative values mean falling prices; the more negative, the steeper the decline. This filters for actual dips rather than sideways drift.
+
+3. **Average True Range (ATR)** — Quantifies volatility magnitude. High ATR during selloffs signals market distress, which often precedes reversals.
+
+**Lorentzian Distance:**
+
+Standard distance metrics (Euclidean) treat a 50% crash as fundamentally different from a 40% crash. But in pattern recognition, both represent "severe capitulation" and should be grouped together. Lorentzian Distance uses logarithmic scaling to match patterns by shape and direction rather than absolute magnitude. A crash is a crash—the exact percentage matters less than the overall structure.
+
+#### 2.1.2 Technical Summary
+
+* **Model**: K-Nearest Neighbors (KNN) non-parametric classifier
+* **Features**: MFI, ROC, ATR normalized to percentile ranks
+* **Distance Metric**: Lorentzian Distance (log-damped)
+* **Prediction Window**: 4-bar forward-looking
+* **Confidence**: ML probability (0-100%) gates entries and scales position size
+* **Thresholds**: 70% minimum for oversold entries, 50% for pullback entries
 
 ### 2.2 Adaptive Asset Sensitivity
-DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based on the selected asset class:
 
-| Asset Class | MFI Target Min | MFI Target Max | Sensitivity ($\rho$) |
-| :--- | :--- | :--- | :--- |
-| **Crypto** | 0 | 35 | 1.7 |
-| **Stocks** | 0 | 55 | 2.0 |
-| **Indices** | 30 | 48 | 2.5 |
-| **Commodities** | 35 | 50 | 2.5 |
+#### 2.2.1 The Rho (ρ) Sensitivity Parameter
+
+Rho determines how much your position size increases as price falls below its historical average. Static DCA deploys the same dollar amount every period. DCAi scales exponentially—the deeper the dip, the larger the buy.
+
+With a €100 monthly budget on Bitcoin:
+
+| Price Drop | Rho = 1.7 (Crypto Default) | Rho = 2.5 (Index Default) |
+|:---|:---|:---|
+| 0% (at average) | €100 | €100 |
+| -10% | €120 | €130 |
+| -25% | €170 | €220 |
+| -40% | €280 | €440 |
+| -60% | €600 | €1,160 |
+
+Lower Rho (1.5-1.7) suits volatile assets where -40% drawdowns happen frequently. Higher Rho (2.0-2.5) suits stable assets where deep dips are rare and should be exploited aggressively.
+
+Crypto can stay oversold for months—a moderate Rho prevents premature capital exhaustion. Index crashes (2008, 2020) are generational events that warrant maximum deployment, hence higher Rho.
+
+#### 2.2.2 Adaptive Thresholds by Asset Class
+
+MFI thresholds vary by asset because "oversold" is relative to market structure:
+
+| Asset Class | MFI Target Min | MFI Target Max | Sensitivity ($\rho$) | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Crypto** | 0 | 35 | 1.7 | MFI<20 can persist for weeks in bear markets |
+| **Stocks** | 0 | 55 | 2.0 | Faster mean reversion, wider acceptable range |
+| **Indices** | 30 | 48 | 2.5 | MFI<30 is already extreme panic |
+| **Commodities** | 35 | 50 | 2.5 | Strong mean reversion tendencies |
+
+When you select an asset class, DCAi calibrates both the oversold threshold and position scaling to match that market's typical behavior.
+
+---
+
+#### 2.3 Quick Reference
+
+| Parameter | Function | Default |
+|:---|:---|:---|
+| **K-Neighbors** | Number of historical situations to compare | 5 |
+| **Lorentzian Distance** | Pattern matching via log-scaled shape recognition | Always on |
+| **MFI** | Buying/selling pressure (0-100 scale) | <35 oversold |
+| **ROC** | Price velocity (negative = falling) | Negative triggers |
+| **ATR** | Volatility magnitude | High = opportunity |
+| **Rho (ρ)** | Position size scaling exponential | 1.7-2.5 by asset |
+| **ML Confidence** | Pattern match probability (%) | 70% min |
+
+DCAi compares current market conditions (MFI, ROC, ATR) against historical data to find similar patterns, verifies those patterns led to price increases, then scales position size based on dip severity and pattern confidence.
 
 ---
 
@@ -207,7 +274,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | $200 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
+| **Monthly Budget** | €100 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
 | **Auto-Optimize** | ✅ Enabled | Use asset-class defaults (Section 2.2) |
 | **Lookback Window** | 1500 | Shorter window = less noise, focuses on recent patterns |
 | **K-Neighbors** | 7-8 | Higher K = fewer false signals, more conservative voting |
@@ -227,7 +294,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | $500 | Standard DCA amount; pot grows steadily |
+| **Monthly Budget** | €250 | Standard DCA amount; pot grows steadily |
 | **Auto-Optimize** | ✅ Enabled | Adaptive to asset class volatility (Section 2.2) |
 | **Lookback Window** | 2000 | Medium window balances recent trends + historical patterns |
 | **K-Neighbors** | 5 | Default; good signal-noise tradeoff |
@@ -247,7 +314,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | $1000+ | Massive monthly burn accelerates pot growth (Section 4.1) |
+| **Monthly Budget** | €500+ | Massive monthly burn accelerates pot growth (Section 4.1) |
 | **Auto-Optimize** | ✅ Enabled | Essential for volatile large positions |
 | **Lookback Window** | 2800 | Maximum window; captures all historical regimes |
 | **K-Neighbors** | 3-4 | Lower K = reactive signals, capitalizes on fast reversals |
@@ -310,7 +377,7 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 **Crypto (BTC/ETH):** Auto Rho = 1.7 (Section 2.2)
 - Crypto stays oversold for weeks; increase `Probability Threshold` to 75% to filter noise
-- Larger daily swings justify higher `Monthly Budget` ($500+)
+- Larger daily swings justify higher `Monthly Budget` (€250+)
 - Use Profile C settings or tune conservatively within Profile B
 
 **Stocks (Tech, Blue-Chip):** Auto Rho = 2.0
@@ -342,7 +409,7 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
    - Confirm ML confidence % is rising into dips (Section 2.1)
 
 3. **Full-Size Live** (after 2+ weeks confidence): Deploy real capital
-   - Start with smallest `Monthly Budget` tier ($100-200)
+   - Start with smallest `Monthly Budget` tier (€50-100)
    - Scale up only if metrics align (lower avg entry, good entry quality)
 
 ---
@@ -390,11 +457,11 @@ When posting your settings, please include the following context to help others 
   - Drawdown management
   - Time period tested (backtested or live)
 
-#### **Why Community Settings Matter:**
-- **Real-World Validation**: Community-tested configurations provide empirical evidence across different market conditions that no single backtester can simulate
-- **Asset-Specific Optimization**: Other users trading the same or similar assets can benefit from your parameter discoveries
-- **Edge Case Discovery**: Unusual asset behaviors (e.g., high-volatility small-caps, commodity seasonality) require specialized tuning that the default profiles may not cover
-- **Collective Intelligence**: The best configurations often emerge from collaborative refinement rather than isolated optimization
+#### **Why Share Your Settings?**
+- **Real-world validation**: Community testing covers market conditions no single backtest can simulate
+- **Asset-specific optimization**: Users trading similar assets benefit from your discoveries
+- **Edge cases**: Unusual assets (high-vol small-caps, seasonal commodities) need tuning beyond default profiles
+- **Collective refinement**: Best configurations emerge through collaboration, not isolation
 
 #### **Contributing Your Settings:**
 1. Navigate to **[GitHub Discussions → Share Your Settings](https://github.com/cerebrux/DCAi/discussions)**
@@ -409,10 +476,10 @@ When posting your settings, please include the following context to help others 
 ## 8. Frequently Asked Questions (FAQ)
 
 ### Q1: How does the "Savings Pot" work in practice?
-**A:** If your monthly budget is, for example, $500 and the market is in a parabolic uptrend with no buy signals, that capital isn't lost. It accumulates in the **Savings Pot**. When the algorithm eventually detects a high-conviction opportunity (Tier 1 or Tier 2), it draws from this reserve to buy more units, significantly lowering your average entry price during "blood in the streets" scenarios.
+**A:** Unused monthly budget accumulates into the Savings Pot. If your monthly budget is €100 but the market is rallying with no buy signals, that €100 rolls over. During the next qualifying dip, DCAi can deploy both the current month's budget plus accumulated reserves, significantly lowering your average entry.
 
 ### Q2: Why use Lorentzian Distance instead of standard Euclidean Distance?
-**A:** Euclidean distance (straight-line) is highly sensitive to outliers. In financial markets, "flash crashes" or news-driven spikes are common. **Lorentzian Distance** uses logarithmic compression, which allows the algorithm to recognize the underlying "shape" of a price pattern even if the magnitude of the movement differs from historical examples.
+**A:** Euclidean distance amplifies outliers. A 50% crash and a 40% crash would be treated as fundamentally different patterns despite both representing severe capitulation. Lorentzian Distance uses logarithmic scaling to match patterns by structural shape rather than absolute magnitude, making it more robust for financial data with frequent spikes and crashes.
 
 ### Q3: Is DCAi suitable for Day Trading or Scalping?
 **A:** No. DCAi is an investment-grade framework designed for **Swing Traders** and **Long-term Investors**. It performs best on Daily (D) or Weekly (W) timeframes. Using it on low timeframes (e.g., 1-minute or 5-minute) may result in excessive signals caused by market noise, leading to premature capital exhaustion.

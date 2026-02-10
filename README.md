@@ -30,6 +30,7 @@ The system utilizes a non-parametric ML model to identify historical price "bott
 * **Feature Engineering**: The model normalizes three key market dimensions: Money Flow Index (MFI), Rate of Change (ROC), and Average True Range (ATR) into percentile ranks.
 * **Distance Metric**: It employs **Lorentzian Distance**, a robust metric that uses log-based damping to ensure large feature variations do not distort pattern matching.
 * **Classification**: The model finds the $K$ closest historical neighbors to predict the probability of a bullish outcome over a 4-bar forward-looking window.
+* **Confidence Use**: The ML probability is used as a confidence score. It gates entries (minimum threshold) and scales position sizing via a confidence multiplier and savings pot usage, so higher confidence leads to more aggressive deployment while low confidence reduces or blocks buys.
 
 ### 2.2 Adaptive Asset Sensitivity
 DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based on the selected asset class:
@@ -115,6 +116,7 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 * **Ichimoku Cloud Filter**: When active, the script prioritizes buys that occur within or near the cloud to avoid buying in "no-man's land."
 * **CVD Divergence Filter**: Toggle on/off the requirement for Volume Delta confirmation.
 * **Cooldown Period**: Number of bars to wait between two major signals to avoid "signal clustering."
+
 ---
 ## How to Use
 1.  Copy the Pine Script code into the **TradingView** Pine Editor.
@@ -122,6 +124,50 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 3.  Select the **Start Date** of your DCA 
 4.  Monitor the **Live Dashboard** for real-time ML confidence and budget status.
 
+---
+# References & Academic Foundation
+
+This project integrates concepts from behavioral finance, machine learning, and quantitative risk management. Below is the list of foundational research papers and literature used to design the **QIA (Quant Investment Assistant)** logic.
+
+## 1. Dollar-Cost Averaging (DCA) & Behavioral Finance
+*   **Statman, M. (1995).** "A Behavioral Framework for Dollar-Cost Averaging." *The Journal of Portfolio Management*, 22(1), 70-78.
+    *   *Explores why investors prefer DCA for psychological reasons (regret minimization) despite mathematical sub-optimality in bull markets.*
+*   **Thorley, S. R. (1994).** "The Fallacy of Dollar-Cost Averaging." *Financial Practice and Education*, 4(2), 17-26.
+    *   *Analyzes the mathematical properties of DCA compared to Lump Sum investing.*
+*   **Leggio, K. B., & Lien, D. (2001).** "Does Dollar Cost Averaging Make Sense?" *Financial Services Review*, 10(1), 73-86.
+    *   *A critical assessment of DCA performance using risk-adjusted return metrics (Sortino/Sharpe).*
+
+## 2. Machine Learning & K-Nearest Neighbors
+*   **Fix, E., & Hodges, J. L. (1951).** "Discriminatory Analysis: Nonparametric Discrimination: Consistency Properties." *USAF School of Aviation Medicine*, Randolph Field, Texas.
+    *   *The seminal paper that introduced the K-Nearest Neighbors (KNN) algorithm.*
+*   **De Prado, M. L. (2018).** *Advances in Financial Machine Learning.* Wiley.
+    *   *The industry standard reference for applying ML techniques to financial time-series data.*
+*   **Jansen, S. (2020).** *Machine Learning for Algorithmic Trading.* Packt Publishing.
+    *   *Practical implementation of ML strategies in trading systems.*
+
+## 3. Technical Analysis & Volatility Dynamics
+*   **Wilder, R. S. (1978).** *New Concepts in Technical Trading Systems.* Trend Research.
+    *   *The origin of the **Average True Range (ATR)**, which represents the volatility component (Feature f3) in the QIA machine learning model.*
+*   **Quong, G., & Soudack, A. (1989).** "Volume-Weighted RSI: Money Flow Index." *Technical Analysis of Stocks & Commodities*, 7(3).
+    *   *The original publication introducing the **Money Flow Index (MFI)**, used here as the primary momentum/volume oscillator for identifying capitulation.*
+*   **Murphy, J. J. (1999).** *Technical Analysis of the Financial Markets.* Penguin York Institute of Finance.
+    *   *The standard textbook for technical analysis, providing the definitive definition of **Rate of Change (ROC)** as the purest measure of price velocity and momentum used in Feature f2.*
+*   **Harris, L. (2003).** *Trading and Exchanges: Market Microstructure for Practitioners.* Oxford University Press.
+    *   *Provides the theoretical framework for **Cumulative Volume Delta (CVD)** by analyzing the bid-ask spread and aggressive order flow (Delta) to identify buyer/seller absorption.*
+*   **Hosoda, G. (Ichimoku Sanjin). (1969).** *Ichimoku Kinko Hyo (一目均衡表).* Economic Statistics Research Institute.
+    *   *The original source for the **Ichimoku Cloud** theory, used in this system to define the equilibrium zones for trend validation.*
+
+## 4. Risk-Adjusted Performance Metrics
+*   **Sortino, F. A., & Price, L. N. (1994).** "Performance Measurement in a Downside Risk Framework." *The Journal of Investing*, 3(3), 59-65.
+    *   *Introduction of the Sortino Ratio, distinguishing between harmful volatility (downside) and general volatility.*
+*   **Young, T. W. (1991).** "Calmar Ratio: A Smoother Tool." *Futures Magazine*, 20(10), 40.
+    *   *Introduction of the Calmar Ratio (CAGR / Max Drawdown) for evaluating hedge fund performance.*
+
+## 5. Quantitative Strategy Optimization
+*   **Pardo, R. (2008).** *The Evaluation and Optimization of Trading Strategies.* Wiley Trading.
+    *   *Methodologies for backtesting, walk-forward analysis, and avoiding overfitting.*
+*   **Narang, R. K. (2013).** *Inside the Black Box: A Simple Guide to Quantitative and High-Frequency Trading.* Wiley.
+    *   *Insights into the structure of professional quant systems and alpha generation.*
 ---
 
 ## License

@@ -132,16 +132,34 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 ### 7.4 Technical Confirmation (Filtering)
 * **Ichimoku Display Options**: Toggles for Tenkan/Kijun lines, Chikou span, and Kumo fill.
 * **Cooldown Period**: Number of bars to wait between strong signals to avoid signal clustering.
+---
+## 8. Frequently Asked Questions (FAQ)
+
+### Q1: How does the "Savings Pot" work in practice?
+**A:** If your monthly budget is, for example, $500 and the market is in a parabolic uptrend with no buy signals, that capital isn't lost. It accumulates in the **Savings Pot**. When the algorithm eventually detects a high-conviction opportunity (Tier 1 or Tier 2), it draws from this reserve to buy more units, significantly lowering your average entry price during "blood in the streets" scenarios.
+
+### Q2: Why use Lorentzian Distance instead of standard Euclidean Distance?
+**A:** Euclidean distance (straight-line) is highly sensitive to outliers. In financial markets, "flash crashes" or news-driven spikes are common. **Lorentzian Distance** uses logarithmic compression, which allows the algorithm to recognize the underlying "shape" of a price pattern even if the magnitude of the movement differs from historical examples.
+
+### Q3: Is DCAi suitable for Day Trading or Scalping?
+**A:** No. DCAi is an investment-grade framework designed for **Swing Traders** and **Long-term Investors**. It performs best on Daily (D) or Weekly (W) timeframes. Using it on low timeframes (e.g., 1-minute or 5-minute) may result in excessive signals caused by market noise, leading to premature capital exhaustion.
+
+### Q4: What exactly does the Sensitivity ($\rho$) parameter control?
+**A:** The $\rho$ (Rho) parameter determines how aggressively the algorithm scales its position size relative to price drops. 
+* **High $\rho$**: The buy amount increases exponentially as the price falls further below the mean.
+* **Low $\rho$**: The allocation is more linear, behaving closer to traditional, flat-rate DCA.
+
+### Q5: How does the "Asset Selection" impact the strategy?
+**A:** Different assets have different "volatility signatures." For example, the Money Flow Index (MFI) on Bitcoin can stay oversold much longer than on the S&P 500. By selecting the correct **Asset Class**, the algorithm automatically re-calibrates its "Panic" and "Oversold" thresholds to match that specific market's behavior.
+
+### Q6: Can I use DCAi for an automated Trading Bot or Web Service?
+**A:** Yes, you are permitted to do so under the **AGPL-3.0 License**. However, the "Network Interaction" clause of the AGPL states that if you run a modified version of this script on a server (SaaS), you **must** make your modified source code available to the users of that service.
+
+### Q7: Does the ML engine "repaint"?
+**A:** No. The KNN classification is calculated on bar closes. Once a bar is confirmed and the signal is printed, the historical pattern matching for that specific point in time remains fixed. This ensures that backtesting results are representative of real-world performance.
 
 ---
-## How to Use
-1.  Copy the Pine Script code into the **TradingView** Pine Editor.
-2.  Select your **Asset Class** in the settings to auto-configure volatility parameters.
-3.  Select the **Start Date** of your DCA 
-4.  Monitor the **Live Dashboard** for real-time ML confidence and budget status.
-
----
-# References & Academic Foundation
+## 9. References & Academic Foundation
 
 This project integrates concepts from behavioral finance, machine learning, and quantitative risk management. Below is the list of foundational research papers and literature used to design the **QIA (Quant Investment Assistant)** logic.
 
@@ -185,6 +203,87 @@ This project integrates concepts from behavioral finance, machine learning, and 
 *   **Narang, R. K. (2013).** *Inside the Black Box: A Simple Guide to Quantitative and High-Frequency Trading.* Wiley.
     *   *Insights into the structure of professional quant systems and alpha generation.*
 ---
+
+## 10. Disclaimer & Risk Warning
+
+### 10.1 No Financial Advice
+**THIS IS NOT FINANCIAL ADVICE.** This software and documentation are provided for **educational and research purposes only**. Nothing herein constitutes investment advice, a recommendation, or an endorsement of any security or investment strategy. The authors are not licensed financial advisors, investment advisors, or registered representatives. Do not rely on this software for investment decisions.
+
+### 10.2 Assumption of Risk
+**You use this software entirely at your own risk.** Trading and investing in ANY asset class (crypto, stocks, indices, commodities) involve substantial risk of loss, including the potential loss of your entire principal. No trading strategy, algorithm, or machine learning model—including DCAi—can guarantee profits or prevent losses. Market conditions are unpredictable and can change rapidly due to:
+- Geopolitical events and news shocks
+- Technical platform failures (TradingView, exchanges, brokers)
+- Flash crashes, circuit breakers, and execution slippage
+- Regulatory changes and sudden liquidity withdrawal
+- Black Swan events and unforeseen systemic risks
+
+### 10.3 No Warranties
+Under the **AGPL-3.0 License**, this software is provided **"AS IS"** without any warranty whatsoever. The authors explicitly disclaim:
+- Any express or implied warranty of merchantability
+- Any warranty of fitness for a particular purpose
+- Any warranty that the software will be error-free or uninterrupted
+- Any warranty regarding accuracy, completeness, or usefulness of results
+- Any warranty about the performance of the KNN algorithm or ML predictions
+
+### 10.4 Limitation of Liability
+**The authors shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages**, including but not limited to:
+- Financial losses or costs incurred from using or relying on this software
+- Lost profits, loss of investment capital, or opportunity costs
+- Data loss or corruption
+- Third-party claims or regulatory fines
+- Any other damages arising out of or in connection with this software
+
+This limitation applies regardless of whether damages were foreseeable or whether the authors were advised of the possibility of such damages.
+
+### 10.5 Backtesting & Past Performance Limitations
+- **Historical results do not guarantee future performance.** Backtesting uses historical data and cannot account for future market conditions, regime changes, or structural breaks.
+- **Backtesting bias**: Model parameters may be overfit to past data. KNN models can have reduced predictive power in novel market conditions.
+- **Execution reality**: Simulated results assume perfect order execution. Real-world trading incurs slippage, fees, commissions, and liquidity constraints.
+- **No repainting disclaimer**: While the KNN model does not "repaint," TradingView's bar aggregation or time zone settings may cause signals to appear at different times than expected.
+
+### 10.6 Technical & Platform-Specific Risks
+- **Pine Script Limitations**: This is a Pine Script v6 indicator running on TradingView. It is dependent on:
+  - TradingView's data feeds, which may contain gaps, errors, or delays
+  - The stability and availability of the TradingView platform
+  - Correct bar aggregation and time zone settings
+- **Broker/Exchange Risks**: Execution of trades based on DCAi signals depends on your broker's systems, liquidity, and regulatory compliance. DCAi has no control over broker order execution.
+- **Connectivity & Latency**: Internet outages, platform downtime, or network delays may prevent signal execution.
+
+### 10.7 ML & Algorithm Limitations
+- **KNN is non-parametric**: The algorithm relies on historical similarity. In truly novel market regimes, performance may degrade significantly.
+- **Feature engineering limitations**: The three features (MFI, ROC, ATR) are normalized metrics. Extreme events (market halts, regulatory interventions) may break this model.
+- **Lookback window constraint**: The model is limited to ~2,800 bars of history due to Pine Script computational constraints.
+- **No guarantee of convergence**: The "4-bar forward prediction window" is arbitrary and may not capture the true reversal zone in all markets.
+
+### 10.8 Asset Class Dependency
+DCAi's behavior is highly asset-dependent. The pre-configured parameters (MFI thresholds, Rho sensitivity) may work well for the tested asset classes (Crypto, Stocks, Indices, Commodities) but:
+- May not generalize to other assets (forex, futures, micro-caps)
+- Require different tuning for different market conditions (bull vs. bear markets)
+- May experience unexpected behavior on assets with low liquidity or unusual volatility profiles
+
+### 10.9 User Responsibility
+**You are solely and entirely responsible** for:
+- Your own investment decisions and capital allocation
+- Conducting thorough due diligence before using this software
+- Understanding the risks and limitations outlined above
+- Monitoring and validating signals before executing trades
+- Complying with all applicable laws and regulations in your jurisdiction
+- Consulting with a qualified, licensed financial advisor before deploying capital
+
+### 10.10 No Endorsement
+The inclusion of academic references in this README does not imply endorsement by those authors or institutions. Academic research is the foundation for concepts (DCA, KNN, Lorentzian Distance) but does not validate the specific implementation or results of DCAi.
+
+---
+
+**By using this software, you acknowledge that you have read, understood, and agree to assume all risks outlined above.**
+
+---
+## How to Use
+1.  Copy the Pine Script code into the **TradingView** Pine Editor.
+2.  Select your **Asset Class** in the settings to auto-configure volatility parameters.
+3.  Select the **Start Date** of your DCA 
+4.  Monitor the **Live Dashboard** for real-time ML confidence and budget status.
+
 
 ## License
 This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. 

@@ -40,6 +40,7 @@ DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based 
 | **Crypto** | 0 | 35 | 1.7 |
 | **Stocks** | 0 | 55 | 2.0 |
 | **Indices** | 30 | 48 | 2.5 |
+| **Commodities** | 35 | 50 | 2.5 |
 
 ---
 
@@ -47,13 +48,13 @@ DCAi dynamically adjusts its sensitivity ($\rho$) and momentum thresholds based 
 The strategy prioritizes trades into three distinct tiers based on signal conviction and liquidity availability:
 
 1.  **Tier 1: FEAR BUY (Extreme Panic)**
-    * Triggered when MFI is below the "Panic" threshold (default 20).
+    * Triggered when MFI is below the "Panic" threshold (default 20), with dynamic relaxation when CVD divergence is bullish.
     * Uses a **Max Multiplier** and aggressive pot allocation.
 2.  **Tier 2: OVERSOLD BUY (Standard Dip)**
-    * Triggered in oversold conditions (MFI < 35) with ML confirmation.
+    * Triggered in oversold conditions (MFI < 35), with dynamic relaxation when CVD divergence is bullish, and ML confirmation.
     * Uses a **Strong Boost** multiplier (default 1.5x).
 3.  **Tier 3: PULLBACK BUY (Trend Following)**
-    * Occurs in healthy uptrends when the price is in the "discount zone" below the Ichimoku Kijun-sen but above the Kumo cloud.
+    * Occurs in healthy uptrends when the price is in the "discount zone" below the Ichimoku Kijun-sen, above Leading Span B, and the cloud is green.
 
 ---
 
@@ -66,7 +67,7 @@ If no buy signal is triggered within a calendar month, the monthly budget is aut
 The investment amount is calculated using an **Inverse-Price Weighting** formula:
 
 * **Exponential Scaling**: As price falls relative to the historical average, the buy amount increases exponentially based on the **$\rho$** parameter.
-* **Confidence Boost**: ML probability acts as a multiplier; a 90%+ confidence level triggers more aggressive pot usage.
+* **Confidence Boost**: ML probability acts as a multiplier; higher confidence increases the multiplier and pot usage on a continuous scale (starting above 50% confidence).
 
 ---
 
@@ -105,7 +106,7 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 ### 7.2 Machine Learning Settings (KNN)
 * **Lookback Window**: Number of historical bars (up to 3000) the ML model uses to find similar patterns.
 * **K-Neighbors**: The number of "nearest neighbors" compared (default is 10).
-* **Probability Threshold**: The minimum ML confidence required to trigger a buy signal (typically 55-60%).
+* **Probability Threshold**: The minimum ML confidence required to trigger a buy signal (defaults to 70% for strong signals and 50% for pullback entries).
 
 ### 7.3 Financial Parameters (Budgeting)
 * **Monthly Budget**: Your total investable capital per month.

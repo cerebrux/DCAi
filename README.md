@@ -102,21 +102,27 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
     * **MFI Thresholds**: Tailored to the typical volatility of each sector.
     * **Adaptive Sensitivity ($\rho$)**: Controls how aggressively the position size increases during dips.
 * **Auto-Optimize Parameters**: When enabled, the script ignores manual overrides and uses pre-calculated optimal values for the selected asset.
+* **Manual Sensitivity ($\rho$)**: Overrides auto-optimization when auto is disabled.
 
 ### 7.2 Machine Learning Settings (KNN)
-* **Lookback Window**: Number of historical bars (up to 3000) the ML model uses to find similar patterns.
-* **K-Neighbors**: The number of "nearest neighbors" compared (default is 10).
+* **Lookback Window**: Number of historical bars (up to 2800) the ML model uses to find similar patterns.
+* **K-Neighbors**: The number of "nearest neighbors" compared (default is 5).
 * **Probability Threshold**: The minimum ML confidence required to trigger an entry signal (defaults to 70% for strong signals and 50% for pullback entries).
+* **ML Confidence Sensitivity**: Controls how strongly the distance-based confidence multiplier scales position sizing.
+* **ROC Length (Feature)**: Length used for the ROC feature in the KNN input set.
 
 ### 7.3 Financial Parameters (Budgeting)
 * **Monthly Budget**: Your total investable capital per month.
+* **Start Date / End Date**: Limits signals and budgeting to a defined trading window.
 * **Max Multiplier Cap**: Limits the maximum investment size for a single signal to prevent over-exposure.
-* **Pot Recovery Rate**: Defines how fast the "Savings Pot" refills after a major deployment.
+* **Strong Buy Boost**: Multiplier applied to oversold signals.
+* **Max Buy Boost**: Multiplier applied to fear signals.
+* **Pot Reserve (%)**: Portion of the savings pot held back for extreme dips.
+* **Show Savings Pot Usage**: Displays pot usage labels on the chart when enabled.
 
 ### 7.4 Technical Confirmation (Filtering)
-* **Ichimoku Cloud Filter**: When active, the script prioritizes buys that occur within or near the cloud to avoid buying in "no-man's land."
-* **CVD Divergence Filter**: Toggle on/off the requirement for Volume Delta confirmation.
-* **Cooldown Period**: Number of bars to wait between two major signals to avoid "signal clustering."
+* **Ichimoku Display Options**: Toggles for Tenkan/Kijun lines, Chikou span, and Kumo fill.
+* **Cooldown Period**: Number of bars to wait between strong signals to avoid signal clustering.
 
 ---
 ## How to Use

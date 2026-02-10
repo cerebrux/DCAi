@@ -138,15 +138,15 @@ Standard distance metrics (Euclidean) treat a 50% crash as fundamentally differe
 
 Rho determines how much your position size increases as price falls below its historical average. Static DCA deploys the same dollar amount every period. DCAi scales exponentially—the deeper the dip, the larger the buy.
 
-With a €100 monthly budget on Bitcoin:
+With a €50 monthly budget on Bitcoin:
 
 | Price Drop | Rho = 1.7 (Crypto Default) | Rho = 2.5 (Index Default) |
 |:---|:---|:---|
-| 0% (at average) | €100 | €100 |
-| -10% | €120 | €130 |
-| -25% | €170 | €220 |
-| -40% | €280 | €440 |
-| -60% | €600 | €1,160 |
+| 0% (at average) | €50 | €50 |
+| -10% | €60 | €65 |
+| -25% | €85 | €110 |
+| -40% | €140 | €220 |
+| -60% | €300 | €580 |
 
 Lower Rho (1.5-1.7) suits volatile assets where -40% drawdowns happen frequently. Higher Rho (2.0-2.5) suits stable assets where deep dips are rare and should be exploited aggressively.
 
@@ -274,7 +274,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | €100 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
+| **Monthly Budget** | €50 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
 | **Auto-Optimize** | ✅ Enabled | Use asset-class defaults (Section 2.2) |
 | **Lookback Window** | 1500 | Shorter window = less noise, focuses on recent patterns |
 | **K-Neighbors** | 7-8 | Higher K = fewer false signals, more conservative voting |
@@ -294,7 +294,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | €250 | Standard DCA amount; pot grows steadily |
+| **Monthly Budget** | €100 | Standard DCA amount; pot grows steadily |
 | **Auto-Optimize** | ✅ Enabled | Adaptive to asset class volatility (Section 2.2) |
 | **Lookback Window** | 2000 | Medium window balances recent trends + historical patterns |
 | **K-Neighbors** | 5 | Default; good signal-noise tradeoff |
@@ -314,7 +314,7 @@ Below are three pre-built profiles aligned with different risk tolerances and ma
 
 | Parameter | Value | Rationale |
 |:---|:---|:---|
-| **Monthly Budget** | €500+ | Massive monthly burn accelerates pot growth (Section 4.1) |
+| **Monthly Budget** | €150+ | Massive monthly burn accelerates pot growth (Section 4.1) |
 | **Auto-Optimize** | ✅ Enabled | Essential for volatile large positions |
 | **Lookback Window** | 2800 | Maximum window; captures all historical regimes |
 | **K-Neighbors** | 3-4 | Lower K = reactive signals, capitalizes on fast reversals |
@@ -377,7 +377,7 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 
 **Crypto (BTC/ETH):** Auto Rho = 1.7 (Section 2.2)
 - Crypto stays oversold for weeks; increase `Probability Threshold` to 75% to filter noise
-- Larger daily swings justify higher `Monthly Budget` (€250+)
+- Larger daily swings justify higher `Monthly Budget` (€100+)
 - Use Profile C settings or tune conservatively within Profile B
 
 **Stocks (Tech, Blue-Chip):** Auto Rho = 2.0
@@ -393,7 +393,7 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
 **Commodities (Gold, Metals):** Auto Rho = 2.5
 - Cyclical and mean-reverting; increase `Lookback Window` to 2500+ to capture longer cycles
 - Wider trading ranges = higher `Monthly Budget` justified
-- Profile B/C hybrid: moderate budget ($300-700) + high Rho sensitivity
+- Profile B/C hybrid: moderate budget (€75-175) + high Rho sensitivity
 
 ---
 
@@ -409,7 +409,7 @@ Fine-tuning DCAi for your specific asset and market regime requires systematic t
    - Confirm ML confidence % is rising into dips (Section 2.1)
 
 3. **Full-Size Live** (after 2+ weeks confidence): Deploy real capital
-   - Start with smallest `Monthly Budget` tier (€50-100)
+   - Start with smallest `Monthly Budget` tier (€25-50)
    - Scale up only if metrics align (lower avg entry, good entry quality)
 
 ---
@@ -476,7 +476,7 @@ When posting your settings, please include the following context to help others 
 ## 8. Frequently Asked Questions (FAQ)
 
 ### Q1: How does the "Savings Pot" work in practice?
-**A:** Unused monthly budget accumulates into the Savings Pot. If your monthly budget is €100 but the market is rallying with no buy signals, that €100 rolls over. During the next qualifying dip, DCAi can deploy both the current month's budget plus accumulated reserves, significantly lowering your average entry.
+**A:** Unused monthly budget accumulates into the Savings Pot. If your monthly budget is €50 but the market is rallying with no buy signals, that €50 rolls over. During the next qualifying dip, DCAi can deploy both the current month's budget plus accumulated reserves, significantly lowering your average entry.
 
 ### Q2: Why use Lorentzian Distance instead of standard Euclidean Distance?
 **A:** Euclidean distance amplifies outliers. A 50% crash and a 40% crash would be treated as fundamentally different patterns despite both representing severe capitulation. Lorentzian Distance uses logarithmic scaling to match patterns by structural shape rather than absolute magnitude, making it more robust for financial data with frequent spikes and crashes.

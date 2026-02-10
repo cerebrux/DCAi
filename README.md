@@ -153,7 +153,182 @@ DCAi offers a highly granular settings menu to align the algorithm with your spe
 ### 7.4 Technical Confirmation (Filtering)
 * **Ichimoku Display Options**: Toggles for Tenkan/Kijun lines, Chikou span, and Kumo fill.
 * **Cooldown Period**: Number of bars to wait between strong signals to avoid signal clustering.
+
 ---
+
+### 7.5 Recommended Configurations
+
+Below are three pre-built profiles aligned with different risk tolerances and market conditions (see **Section 2.1** ML settings and **Section 3** decision tiers for context):
+
+#### **Profile A: CONSERVATIVE (Low Signal Frequency, Capital Preservation)**
+*Best for: Risk-averse investors, volatile assets (micro-caps), bear markets*
+
+| Parameter | Value | Rationale |
+|:---|:---|:---|
+| **Monthly Budget** | $200 | Lower monthly burn; pot can accumulate over 6+ months for large entries |
+| **Auto-Optimize** | ✅ Enabled | Use asset-class defaults (Section 2.2) |
+| **Lookback Window** | 1500 | Shorter window = less noise, focuses on recent patterns |
+| **K-Neighbors** | 7-8 | Higher K = fewer false signals, more conservative voting |
+| **Probability Threshold** | 75% | Strict entry gate (only high-conviction ML signals) |
+| **ML Confidence Sensitivity** | 1.5 | Muted confidence scaling (avoid over-sizing on marginal signals) |
+| **Pot Reserve %** | 25% | Keep 25% for Black Swan events |
+| **Strong Buy Boost** | 1.3x | Light multiplier (Tier 2) |
+| **Max Buy Boost** | 1.8x | Moderate multiplier (Tier 3) |
+| **Cooldown Period** | 15 bars | Longer wait between signals prevents over-trading |
+
+**Expected Behavior**: 1-3 signals/month, deeper drawdown reserve, higher avg entry quality
+
+---
+
+#### **Profile B: BALANCED (Default – Medium Risk/Reward)**
+*Best for: Long-term investors, established assets (BTC/ETH, Index funds), 2-8 year horizons*
+
+| Parameter | Value | Rationale |
+|:---|:---|:---|
+| **Monthly Budget** | $500 | Standard DCA amount; pot grows steadily |
+| **Auto-Optimize** | ✅ Enabled | Adaptive to asset class volatility (Section 2.2) |
+| **Lookback Window** | 2000 | Medium window balances recent trends + historical patterns |
+| **K-Neighbors** | 5 | Default; good signal-noise tradeoff |
+| **Probability Threshold** | 70% | Standard entry gate (Section 2.1) |
+| **ML Confidence Sensitivity** | 2.0 | Moderate scaling (Section 4.2 continuous scaling) |
+| **Pot Reserve %** | 15% | 15% reserve balances opportunity + safety |
+| **Strong Buy Boost** | 1.5x | Standard multiplier (Tier 2, per Section 3) |
+| **Max Buy Boost** | 2.0x | Default fear multiplier (Tier 3, per Section 3) |
+| **Cooldown Period** | 10 bars | Standard multi-entry frequency |
+
+**Expected Behavior**: 3-6 signals/month, reasonable pot accumulation, balanced entries across tiers
+
+---
+
+#### **Profile C: AGGRESSIVE (High Frequency, Pot-Driven)**
+*Best for: Active investors, stable assets (large-cap stocks, top-tier crypto), bull/accumulation phases*
+
+| Parameter | Value | Rationale |
+|:---|:---|:---|
+| **Monthly Budget** | $1000+ | Massive monthly burn accelerates pot growth (Section 4.1) |
+| **Auto-Optimize** | ✅ Enabled | Essential for volatile large positions |
+| **Lookback Window** | 2800 | Maximum window; captures all historical regimes |
+| **K-Neighbors** | 3-4 | Lower K = reactive signals, capitalizes on fast reversals |
+| **Probability Threshold** | 60% | Relaxed gate; accept marginal signals (Tier 1 pullbacks more common) |
+| **ML Confidence Sensitivity** | 2.5 | Aggressive scaling; high conviction → double position size |
+| **Pot Reserve %** | 5% | Minimal reserve; deploy nearly all pot capital |
+| **Strong Buy Boost** | 1.8x | Elevated oversold aggressiveness (Tier 2) |
+| **Max Buy Boost** | 2.5x | Maximum fear response (Tier 3) |
+| **Cooldown Period** | 5 bars | Allow rapid re-entry via decision tiers (Tier 1 pullback + Tier 3 fear same month) |
+
+**Expected Behavior**: 8-15+ signals/month, rapid pot depletion/replenishment cycles, early entries into dips
+
+---
+
+### 7.6 Parameter Tuning & Optimization Guide
+
+Fine-tuning DCAi for your specific asset and market regime requires systematic testing. Use this guide to iterate from a base profile:
+
+#### **Step 1: Establish Your Baseline (Week 1)**
+1. Start with **Profile B (Balanced)** for your asset class
+2. Run the indicator live or backtest for 1-2 weeks (`Start Date` → `End Date` in Section 7.3)
+3. Record: number of signals, average entry price, portfolio growth, drawdown
+
+**Metric to Track**: *Signal Frequency* = signals/month (target: 3-8 for balanced)
+
+---
+
+#### **Step 2: Diagnose Over/Under-Trading (Week 2-3)**
+
+| If You See... | Root Cause | Adjustment |
+|:---|:---|:---|
+| **Too Few Signals** (<1/month) | ML too strict, Lookback outdated, Or asset in strong trend with no dips | Decrease `Probability Threshold` by 5% OR increase `K-Neighbors` (paradoxically makes voting easier) OR shorter `Lookback Window` |
+| **Too Many Signals** (>15/month) | ML too loose, or extreme volatility | Increase `Probability Threshold` by 5-10% OR lower `K-Neighbors` (stricter voting) |
+| **Signals Cluster (3+ same day)** | `Cooldown Period` active across all tiers; Tier 1 blocks Tier 2/3 | Decrease `Cooldown Period` to 5-7 bars OR increase `Probability Threshold` to reduce Tier 1 frequency |
+| **Pot Never Accumulates** | Too many monthly signals, money spent without pause | Increase `Probability Threshold` OR longer `Cooldown Period` |
+| **Pot Accumulates But Never Deployed** | No high-conviction signals in your timeframe; conservative ML | Decrease `Probability Threshold` by 10% OR increase `ML Confidence Sensitivity` to scale smaller signals larger |
+
+**Action**: Adjust ONE parameter per week and re-test 2+ weeks of data before next change.
+
+---
+
+#### **Step 3: Risk Profile Alignment (Week 4)**
+
+**If you want MORE capital at risk during dips:**
+- Increase `Monthly Budget` (more monthly salary → bigger entries)
+- Increase `Strong Buy Boost` and `Max Buy Boost` (Section 3 tiers 2-3)
+- Decrease `Pot Reserve %` (deploy more reserve capital)
+- Decrease `ML Confidence Sensitivity` (even low-conviction signals get sized larger)
+
+**If you want LESS capital at risk (capital preservation):**
+- Decrease `Monthly Budget`
+- Decrease `Strong Buy Boost` and `Max Buy Boost`
+- Increase `Pot Reserve %` (10-30%)
+- Increase `ML Confidence Sensitivity` (only confident signals get sized larger)
+- Increase `Probability Threshold` (gate more entries)
+
+---
+
+#### **Step 4: Asset-Specific Tuning (Ongoing)**
+
+**Crypto (BTC/ETH):** Auto Rho = 1.7 (Section 2.2)
+- Crypto stays oversold for weeks; increase `Probability Threshold` to 75% to filter noise
+- Larger daily swings justify higher `Monthly Budget` ($500+)
+- Use Profile C settings or tune conservatively within Profile B
+
+**Stocks (Tech, Blue-Chip):** Auto Rho = 2.0
+- Stocks recover faster; lower `Cooldown Period` (5-8 bars) enables faster re-entry
+- More efficient markets = tighter Lookback Window (1500 bars preferred)
+- Profile B defaults work well; lower `K-Neighbors` to 3-4 for responsiveness
+
+**Indices (S&P500, World ETFs):** Auto Rho = 2.5
+- Broad indices are smoother; shorter `Lookback Window` (1000-1500) reduces lag
+- Lower signal frequency natural; `Probability Threshold` 65-70%
+- Profile A or low-end Profile B recommended
+
+**Commodities (Gold, Metals):** Auto Rho = 2.5
+- Cyclical and mean-reverting; increase `Lookback Window` to 2500+ to capture longer cycles
+- Wider trading ranges = higher `Monthly Budget` justified
+- Profile B/C hybrid: moderate budget ($300-700) + high Rho sensitivity
+
+---
+
+#### **Step 5: Backtesting & Live Validation (Weeks 5-12)**
+
+1. **Backtest** (TradingView Pine Editor): Set `Start Date` 6+ months ago, run indicator
+   - Compare DCAi portfolio (avg entry, ROI) vs. monthly passive DCA benchmark
+   - DCAi should have **lower average entry price** and **similar or higher returns** (Section 1 advantages)
+
+2. **Live Paper Trading** (1-2 weeks): Run on live chart without capital
+   - Verify signals align with visual support/resistance
+   - Check Ichimoku clouds (Tier 1 Pullback validation, Section 3)
+   - Confirm ML confidence % is rising into dips (Section 2.1)
+
+3. **Full-Size Live** (after 2+ weeks confidence): Deploy real capital
+   - Start with smallest `Monthly Budget` tier ($100-200)
+   - Scale up only if metrics align (lower avg entry, good entry quality)
+
+---
+
+#### **Red Flags: When to Reset Settings**
+
+- **Average entry price is HIGHER than blind DCA**: ML settings too loose, increase `Probability Threshold` by 10%+
+- **Portfolio never catches dips (<2 Tier 2/3 entries/year in volatile market)**: Decrease `Probability Threshold`, increase `K-Neighbors`, or double `Monthly Budget`
+- **Drawdown exceeds 50% through no fault of market**: `Max Buy Boost` too aggressive; reduce to 1.5-2.0x, or increase `Pot Reserve %`
+- **Pot grows to 10x+ monthly budget and never deploys**: Increase `Probability Threshold` is backwards; actually *decrease* it to trigger more deployments
+
+---
+
+### 7.7 Parameter Interactions & Dependencies
+
+These parameters work together. Changing one affects optimal values of others:
+
+| Change | Downstream Effects | Compensatory Adjustment |
+|:---|:---|:---|
+| Decrease `Probability Threshold` | More signals, faster pot depletion | Increase `Cooldown Period` OR decrease multipliers |
+| Increase `Monthly Budget` | Pot grows faster, but also more monthly deployment | Increase `Probability Threshold` to offset, else over-trading |
+| Decrease `Lookback Window` | ML more reactive to recent patterns | May increase false signals; increase `K-Neighbors` |
+| Increase `K-Neighbors` | Fewer signals (higher voting threshold) | Decrease `Probability Threshold` to maintain signal frequency |
+| Increase `ML Confidence Sensitivity` | Higher confidence = larger position size | Watch for over-concentrated entries; cap with `Max Multiplier Cap` |
+| Decrease `Cooldown Period` | Allow multiple signals per period | Ensure pot sufficient; increase `Pot Reserve %` for safety |
+
+---
+
 ## 8. Frequently Asked Questions (FAQ)
 
 ### Q1: How does the "Savings Pot" work in practice?

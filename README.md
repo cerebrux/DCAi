@@ -1,10 +1,11 @@
 # DCAi: Machine Learning Based DCA Strategy
-
-### Technical White Paper & Documentation
+![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)
 
 ## Abstract
 **DCAi** is a high-fidelity algorithmic trading framework designed to optimize the traditional Dollar-Cost Averaging (DCA) methodology. By integrating **K-Nearest Neighbors (KNN)** classification with **Lorentzian Distance** and adaptive budget allocation, the strategy aims to lower the average entry price while managing downside risk more effectively than "blind" passive investing.
 
+---
+![DCAi](images/btcusdc-scrnsht-dcai.png)
 ---
 
 ## 1. The Inefficiency of Static DCA
@@ -83,7 +84,33 @@ The investment amount is calculated using an **Inverse-Price Weighting** formula
 3.  **Recursive Learning**: Implementing a self-correcting mechanism for the $\rho$ parameter based on realized drawdown.
 
 ---
+## 7. Configuration & Parameters
 
+DCAi offers a highly granular settings menu to align the algorithm with your specific risk profile and asset class.
+
+![Settings Menu](images/dcai-settings.png)
+
+### 7.1 Asset Selection & Auto-Optimization
+* **Asset Class**: Choose between `Crypto`, `Stocks`, `Indices`, or `Commodities`. This selection automatically adjusts:
+    * **MFI Thresholds**: Tailored to the typical volatility of each sector.
+    * **Adaptive Sensitivity ($\rho$)**: Controls how aggressively the position size increases during dips.
+* **Auto-Optimize Parameters**: When enabled, the script ignores manual overrides and uses pre-calculated optimal values for the selected asset.
+
+### 7.2 Machine Learning Settings (KNN)
+* **Lookback Window**: Number of historical bars (up to 3000) the ML model uses to find similar patterns.
+* **K-Neighbors**: The number of "nearest neighbors" compared (default is 10).
+* **Probability Threshold**: The minimum ML confidence required to trigger a buy signal (typically 55-60%).
+
+### 7.3 Financial Parameters (Budgeting)
+* **Monthly Budget**: Your total investable capital per month.
+* **Max Multiplier Cap**: Limits the maximum investment size for a single signal to prevent over-exposure.
+* **Pot Recovery Rate**: Defines how fast the "Savings Pot" refills after a major deployment.
+
+### 7.4 Technical Confirmation (Filtering)
+* **Ichimoku Cloud Filter**: When active, the script prioritizes buys that occur within or near the cloud to avoid buying in "no-man's land."
+* **CVD Divergence Filter**: Toggle on/off the requirement for Volume Delta confirmation.
+* **Cooldown Period**: Number of bars to wait between two major signals to avoid "signal clustering."
+---
 ## How to Use
 1.  Copy the Pine Script code into the **TradingView** Pine Editor.
 2.  Select your **Asset Class** in the settings to auto-configure volatility parameters.

@@ -273,9 +273,9 @@ DCAi offers a configurable settings menu to align the algorithm with your risk p
 
 ---
 
-### 7.5 Example Configurations
+### 7.5 Example Configurations for Backtesting
 
-Below are three pre-built profiles aligned with different risk tolerances and market conditions (see **Section 2.1** ML settings and **Section 3** decision tiers for context):
+Below are three pre-built profiles for backtesting, aligned with different risk tolerances and market conditions (see **Section 2.1** ML settings and **Section 3** decision tiers for context):
 
 #### **Profile A: CONSERVATIVE (Low Signal Frequency, Capital Preservation)**
 *Typical use cases: Risk-averse investors, volatile assets (micro-caps), bear markets*

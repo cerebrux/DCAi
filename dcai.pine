@@ -626,19 +626,25 @@ if barstate.islast and show_dash
     table.cell(dash, 2, r, "Blind DCA", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
     r += 1
 
-    // Total Budget Committed
-    table.cell(dash, 0, r, "Budget", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, "€" + str.tostring(total_budget, "#"), text_color=color.white)
-    table.cell(dash, 2, r, "€" + str.tostring(total_budget, "#"), text_color=color.white)
+    // 1. Deployed Capital (Money used to buy units)
+    table.cell(dash, 0, r, "Invested", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, "€" + str.tostring(smart_invested, "#"), text_color=color.white)
+    table.cell(dash, 2, r, "€" + str.tostring(monthly_invested, "#"), text_color=color.white)
     r += 1
 
-    // Current Equity (Value + Cash)
-    table.cell(dash, 0, r, "Value", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, "€" + str.tostring(cur_smart_equity, "#"), text_color=color.white)
-    table.cell(dash, 2, r, "€" + str.tostring(cur_monthly_equity, "#"), text_color=color.white)
+    // 2. Idle Capital (Cash in Pot)
+    table.cell(dash, 0, r, "Cash (Pot)", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, "€" + str.tostring(savings_pot, "#"), text_color=color.new(#FFD700, 0))
+    table.cell(dash, 2, r, "€0", text_color=color.gray)
     r += 1
 
-    // Net PnL %
+    // 3. Current Net Worth (Invested Value + Cash)
+    table.cell(dash, 0, r, "Total Value", text_halign=text.align_left, text_color=color.white, bgcolor=color.new(color.gray, 80))
+    table.cell(dash, 1, r, "€" + str.tostring(cur_smart_equity, "#"), text_color=color.white, bgcolor=color.new(color.gray, 80))
+    table.cell(dash, 2, r, "€" + str.tostring(cur_monthly_equity, "#"), text_color=color.white, bgcolor=color.new(color.gray, 80))
+    r += 1
+
+    // 4. Total ROI (Net Profit % based on total committed budget)
     table.cell(dash, 0, r, "Total ROI", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(smart_portfolio_roi * 100, "#.##") + "%", text_color=smart_portfolio_roi >= 0 ? color.lime : color.red)
     table.cell(dash, 2, r, str.tostring(monthly_portfolio_roi * 100, "#.##") + "%", text_color=monthly_portfolio_roi >= 0 ? color.gray : color.red)

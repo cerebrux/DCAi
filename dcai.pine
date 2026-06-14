@@ -109,435 +109,7 @@ if is_new_month
         monthly_units += base_budget / close
 
 // --- TRACK RETURNS FOR SORTINO ---
-// Calculate daily returns: (today's equity - yesterday's) / yesterday's
-if is_in_period and barstate.isconfirmed
-    // Active Strategy Equity
-    float smart_equity_val = smart_units * close
-    // Note: We measure returns on invested equity only (not cash drag from savings pot)
-    // This isolates the quality of our entry timing
-    
-    if smart_prev_equity > 0
-        float ret = (smart_equity_val - smart_prev_equity) / smart_prev_equity
-        // Filter out massive jumps caused by large deposits (approx filter)
-        if math.abs(ret) < 0.5  // Ignore > 50% swings (likely deposits, not price moves)
-            array.push(smart_returns, ret)
-    smart_prev_equity := smart_equity_val
-
-    // Monthly Strategy Equity
-    float monthly_equity_val_ret = monthly_units * close
-    if monthly_prev_equity > 0
-        float ret_m = (monthly_equity_val_ret - monthly_prev_equity) / monthly_prev_equity
-        if math.abs(ret_m) < 0.5
-            array.push(monthly_returns, ret_m)
-    monthly_prev_equity := monthly_equity_val_ret
-
-
-// DCA Amount Calculator: Adaptive position sizing based on price deviations
-// Formula: Uses inverse-price weighting (buy more when price is low, less when high)
-// Why? Follows Dollar-Cost Averaging principle: maximize units purchased when cheap
-calc_smart_amount(current_price, base, rho, cap_mult) =>
-    float final_amt = base
-    if array.size(price_history) > 0 and current_price > 0
-        // Calculate average of 1/price^rho (rho = sensitivity to price drops)
-        // Rho > 1: Exponentially more aggressive when price falls
-        float sum_inverse = 0.0
-        for i = 0 to array.size(price_history) - 1
-            float p = array.get(price_history, i)
-            if p > 0
-                sum_inverse += math.pow(1.0 / p, rho)  // Inverse power: lower price = higher value
-        float avg_inverse = sum_inverse / array.size(price_history)
-        float current_inverse = math.pow(1.0 / current_price, rho)
-        // Multiplier = how far current price is from historical average (on log scale)
-        float multiplier = 1.0
-        if avg_inverse > 0
-            multiplier := current_inverse / avg_inverse  // > 1 if price is low, < 1 if high
-        // Cap multiplier to prevent extreme oversizing (e.g., at panic lows)
-        if multiplier > cap_mult
-            multiplier := cap_mult
-        final_amt := base * multiplier
-    final_amt
-
-// ==========================================
-// 3. ICHIMOKU SETTINGS
-// ==========================================
-group_ichi = "3. Ichimoku Settings"
-show_ichi_lines = input.bool(false, "Show Ichimoku Lines", group=group_ichi)
-show_chikou = input.bool(true, "Show Chikou Span", group=group_ichi)
-show_kumo_fill = input.bool(true, "Show Kumo Fill", group=group_ichi)
-tenkan_len = input.int(9, "Conversion Line (Tenkan)", minval=1, group=group_ichi)
-kijun_len  = input.int(26, "Base Line (Kijun)", minval=1, group=group_ichi)
-spanB_len  = input.int(52, "Leading Span B Length", minval=1, group=group_ichi)
-displace   = input.int(26, "Displacement (Offset)", minval=1, group=group_ichi)
-
-donchian(len) => math.avg(ta.lowest(len), ta.highest(len))
-tenkan = donchian(tenkan_len)
-kijun  = donchian(kijun_len)
-spanA  = math.avg(tenkan, kijun)
-spanB  = donchian(spanB_len)
-chikou = close
-
-plot(tenkan, color=show_ichi_lines ? color.new(#2962FF, 0) : na, title="Tenkan-sen")
-plot(kijun, color=show_ichi_lines ? color.new(#B71C1C, 0) : na, linewidth=1, title="Kijun-sen")
-plot(chikou, offset = -displace, color=show_chikou ? color.new(#43A047, 0) : na, title="Chikou Span")
-
-p1 = plot(spanA, offset = displace, color=show_ichi_lines ? color.new(#43A047, 0) : na, title="Lead A")
-p2 = plot(spanB, offset = displace, color=show_ichi_lines ? color.new(#F44336, 0) : na, title="Lead B")
-fill(p1, p2, color = show_kumo_fill ? (spanA > spanB ? color.new(#43A047, 90) : color.new(#F44336, 90)) : na, title="Cloud Fill")
-
-// ==========================================
-// 4. MOMENTUM & VOLUME
-// ==========================================
-// Money Flow Index (MFI): Measures buying/selling pressure
-// Low MFI (0-20) = Sellers overwhelmed = Likely bounce (fear zone)
-// High MFI (80-100) = Buyers exhausted = Likely pullback (greed zone)
-group_mom = "4. Momentum & Volume"
-mfi_len = input.int(14, "MFI Length", minval=1, group=group_mom)
-cvd_smooth = input.int(5, "CVD Smoothing (EMA)", minval=1, group=group_mom)
-
-mf = ta.mfi(hlc3, mfi_len)  // MFI: money flow index (0-100 scale)
-
-// Cumulative Volume Delta (CVD): Tracks if volume accumulates on up or down days
-// Useful to detect divergences (price down, volume up = potential bottom)
-raw_delta = ((close - open) / math.max(high - low, 0.00001)) * volume  // Up/down ratio × volume
-cvd_line  = ta.cum(raw_delta)  // Running total (cumulative)
-
-// Bullish Divergence: Price makes new low but CVD stays higher (volume didn't panic)
-price_ll = ta.lowest(low, 10) < ta.lowest(low[10], 10)  // New 10-bar low?
-cvd_hl   = ta.lowest(cvd_line, 10) > ta.lowest(cvd_line[10], 10)  // CVD held up?
-is_cvd_div_bull = price_ll and cvd_hl  // Price down, volume bullish = reversal signal
-
-// CVD Trend: Is current volume trending up or down?
-is_cvd_trend_up = raw_delta > ta.ema(raw_delta, cvd_smooth)  // Is current bar bullish vs average?
-is_cvd_bullish = is_cvd_div_bull or is_cvd_trend_up  // Either divergence OR trend is bullish
-
-// ==========================================
-// 5. ML / KNN
-// ==========================================
-// KNN (K-Nearest Neighbors) is used to identify price "bottoms" based on historical patterns
-// The model learns when past similar market conditions led to price appreciation
-group_ml = "5. ML Bottom Discovery (KNN)"
-knn_history = input.int(1000, "History Lookback", minval=10, maxval=2800, group=group_ml)
-knn_neighbors = input.int(5, "Neighbors Count", minval=1, maxval=100, group=group_ml)
-knn_prob_thresh = input.float(70.0, "Probability Threshold %", minval=50, maxval=100, group=group_ml)
-ml_boost_sens   = input.float(2.0, "ML Confidence Sensitivity", minval=0.1, step=0.1, group=group_ml)
-roc_len_ml = input.int(14, "Feature: ROC Length", group=group_ml)
-int prediction_window = 4  // Bars ahead we're trying to predict (4-bar forward-looking)
-
-// Feature Engineering: Normalize 3 key indicators to percentile rank (0-100)
-// This makes them scale-independent and comparable across different market regimes
-f1 = ta.percentrank(mf, 100)  // MFI percentile: Money Flow Intensity (oversold = low)
-f2 = ta.percentrank(ta.roc(close, roc_len_ml), 100)  // ROC percentile: momentum/velocity
-f3 = ta.percentrank(ta.atr(14), 100)  // ATR percentile: volatility level 
-
-// Lorentzian Distance: Robust distance metric used to find "closest" historical patterns
-// Instead of Euclidean (straight-line), we use log-based distance:
-// - log() dampens large differences (important features don't overwhelm)
-// - Compares current + lagged features (momentum context matters)
-// Result: distances < 1 mean close match, > 2 mean dissimilar patterns
-get_lorentzian_distance(f1, f2, f3, f1_lag, f2_lag, f3_lag, i, f1_arr, f2_arr, f3_arr, f1_lag_arr, f2_lag_arr, f3_lag_arr) =>
-    math.log(1 + math.abs(f1 - array.get(f1_arr, i))) +  // Current MFI distance
-     math.log(1 + math.abs(f2 - array.get(f2_arr, i))) +  // Current ROC distance
-     math.log(1 + math.abs(f3 - array.get(f3_arr, i))) +  // Current ATR distance
-     math.log(1 + math.abs(f1_lag - array.get(f1_lag_arr, i))) +  // Previous MFI distance
-     math.log(1 + math.abs(f2_lag - array.get(f2_lag_arr, i))) +  // Previous ROC distance
-     math.log(1 + math.abs(f3_lag - array.get(f3_lag_arr, i)))   // Previous ATR distance
-
-var f1_history = array.new_float(0)
-var f2_history = array.new_float(0)
-var f3_history = array.new_float(0)
-var f1_lag_history = array.new_float(0)
-var f2_lag_history = array.new_float(0)
-var f3_lag_history = array.new_float(0)
-var train_labels = array.new_float(0) 
-
-// Build training dataset: Store historical features and their outcomes
-// We look back 4 bars to record what happened after these market conditions
-if bar_index >= prediction_window + 1
-    array.push(f1_history, f1[prediction_window])       // MFI from 4 bars ago
-    array.push(f2_history, f2[prediction_window])       // ROC from 4 bars ago
-    array.push(f3_history, f3[prediction_window])       // ATR from 4 bars ago
-    array.push(f1_lag_history, f1[prediction_window + 1])  // MFI from 5 bars ago (lag)
-    array.push(f2_lag_history, f2[prediction_window + 1])  // ROC from 5 bars ago (lag)
-    array.push(f3_lag_history, f3[prediction_window + 1])  // ATR from 5 bars ago (lag)
-    // Label: Did price go UP in the 4 bars following these conditions?
-    is_bullish_outcome = close > close[prediction_window]
-    array.push(train_labels, is_bullish_outcome ? 1.0 : 0.0)
-
-// Circular buffer: Keep only the last N bars of history to prevent memory bloat
-// Older patterns are discarded to focus on recent regime conditions
-if array.size(f1_history) > knn_history
-    array.shift(f1_history)       // Remove oldest entry
-    array.shift(f2_history)
-    array.shift(f3_history)
-    array.shift(f1_lag_history)
-    array.shift(f2_lag_history)
-    array.shift(f3_lag_history)
-    array.shift(train_labels)
-
-var predictions = array.new_float(0)
-var distances = array.new_float(0)
-array.clear(predictions)
-array.clear(distances)
-
-// KNN Classification: Find K closest historical patterns and vote on bullish/bearish
-if array.size(train_labels) >= knn_neighbors
-    for i = 0 to array.size(train_labels) - 1
-        // Calculate distance between current features and historical bar i
-        d = get_lorentzian_distance(f1, f2, f3, f1[1], f2[1], f3[1], i, f1_history, f2_history, f3_history, f1_lag_history, f2_lag_history, f3_lag_history)
-        
-        if array.size(distances) < knn_neighbors
-            // Build initial K neighbors list
-            array.push(distances, d)
-            array.push(predictions, array.get(train_labels, i))
-        else
-            // Keep only K nearest: replace furthest neighbor if current is closer
-            float max_d = -1.0
-            int max_idx = -1
-            for k = 0 to knn_neighbors - 1
-                if array.get(distances, k) > max_d
-                    max_d := array.get(distances, k)
-                    max_idx := k
-            if d < max_d  // New pattern is closer than furthest in top-K
-                array.set(distances, max_idx, d)
-                array.set(predictions, max_idx, array.get(train_labels, i))
-
-// Majority voting: What % of K nearest neighbors predict bullish?
-float prediction_sum = array.sum(predictions)
-int neighbors_found = array.size(predictions)
-prob = neighbors_found > 0 ? (prediction_sum / neighbors_found) * 100.0 : 0.0
-// is_ml_bottom: Probability >= threshold means "market bottom pattern detected"
-is_ml_bottom = prob >= knn_prob_thresh
-
-// Track distance to closest bullish neighbor (used for confidence boost)
-// Closer match = higher confidence in the buy signal
-var float min_bull_dist = 100.0
-if neighbors_found > 0
-    min_bull_dist := 100.0
-    for k = 0 to neighbors_found - 1
-        if array.get(predictions, k) > 0.5  // This neighbor predicted bullish
-            float d_val = array.get(distances, k)
-            if d_val < min_bull_dist
-                min_bull_dist := d_val  // Store distance to closest bullish pattern
-
-if time >= start_date
-    array.push(price_history, close)
-    if array.size(price_history) > knn_history
-        array.shift(price_history)
-
-// ==========================================
-// 6. DECISION ENGINE & ADAPTIVE WEIGHTING
-// ==========================================
-group_dec = "6. Decision Engine Logic"
-sb_cooldown = input.int(10, "Strong Buy Cooldown (Bars)", group=group_dec)
-dca_ml_thresh = input.float(50.0, "DCA Entry ML %", group=group_dec)
-
-mfi_strong_lvl = 35  // Below this = oversold (STRONG BUY signal possible)
-mfi_max_lvl    = 20  // Below this = panic (FEAR BUY signal possible)
-
-var int last_strong_buy_bar = 0  // When was last STRONG buy triggered (bar_index)
-
-// Ichimoku cloud validation: Price should be in recovery zone (below Kijun)
-lead_span_a = spanA[displace]  // Leading Span A (future reference)
-lead_span_b = spanB[displace]  // Leading Span B (future reference)  
-is_cloud_green = lead_span_a > lead_span_b  // Cloud turned bullish?
-is_pullback_zone = is_cloud_green and close <= kijun and close > lead_span_b  // Healthy pullback
-is_mfi_ok = mf >= mfi_target_min and mf <= mfi_target_max  // MFI in target range for this asset
-
-// Dynamic MFI adjustment: CVD divergence = extra confirmation, so we need LESS oversold MFI
-var int effective_mfi_strong = mfi_strong_lvl
-var int effective_mfi_max    = mfi_max_lvl
-if is_cvd_div_bull
-    // Bullish divergence = less panic needed, relax thresholds +10 and +5
-    effective_mfi_strong := mfi_strong_lvl + 10 
-    effective_mfi_max    := mfi_max_lvl + 5     
-else
-    // No divergence = stick to strict levels
-    effective_mfi_strong := mfi_strong_lvl
-    effective_mfi_max    := mfi_max_lvl
-
-is_strong_zone = mf < effective_mfi_strong  // True if MFI crossed into "strong buy" zone
-is_max_zone    = mf < effective_mfi_max     // True if MFI crossed into "fear buy" zone
-
-// Buy Signal Triggers: Only ONE per month, prioritized by signal strength
-bool trigger_strong = false
-bool trigger_max    = false
-bool trigger_std    = false
-
-// Check if STRONG signals (OVERSOLD/FEAR) already triggered this month
-// These are mutually exclusive but can coexist with PULLBACK if pot available
-bool already_strong_bought = (last_strong_buy_month == current_month_id) or (last_max_buy_month == current_month_id)
-
-// Check if PULLBACK already triggered this month
-bool already_pullback_bought = last_std_buy_month == current_month_id
-
-// Check if strong signal is allowed (pot check if PULLBACK already occurred)
-bool strong_signal_allowed = true
-if already_pullback_bought
-    // If PULLBACK was triggered, check if remaining pot >= base_budget
-    float remaining_pot_after_pullback = savings_pot - base_budget
-    if remaining_pot_after_pullback < base_budget
-        strong_signal_allowed := false  // Not enough pot for second signal
-
-// Base strong condition: All core signals aligned (ML, MFI, CVD, cooldown respected)
-bool base_strong_condition = is_ml_bottom and is_strong_zone and is_cvd_bullish and (bar_index - last_strong_buy_bar > sb_cooldown)
-
-// TIER 1 & 2: FEAR/OVERSOLD (Strong signals) - Block each other, but NOT blocked by PULLBACK if pot exists
-if base_strong_condition and is_in_period and not already_strong_bought and strong_signal_allowed
-    // Tiered buy logic: Extreme dips (MAX) take priority over normal dips (STRONG)
-    if close <= kijun  // Price must be in discount zone (below 26-period mid)
-        if is_max_zone  // TIER 1: FEAR BUY (extreme panic)
-            trigger_max := true
-            last_max_buy_month := current_month_id
-            last_strong_buy_bar := bar_index
-        else
-            // TIER 2: OVERSOLD BUY (normal dip)
-            trigger_strong := true
-            last_strong_buy_month := current_month_id
-            last_strong_buy_bar := bar_index
-
-// Check if ML gives green light for opportunistic pullback buys
-is_ml_dca_ok = prob >= dca_ml_thresh
-
-// TIER 3: PULLBACK BUY - Less stringent, happens in healthy uptrends
-// Can coexist with OVERSOLD/FEAR if they use pot, but NOT on the same bar
-if is_in_period and not already_pullback_bought and is_pullback_zone and is_ml_dca_ok and not trigger_max and not trigger_strong
-    trigger_std := true
-    last_std_buy_month := current_month_id
-
-// --- AMOUNT CALCULATION ---
-// ML Confidence Multiplier: The closer current pattern matches a bullish historical bottom,
-// the more aggressively we size the position
-float ml_confidence_mult = 1.0
-if is_ml_bottom and min_bull_dist < 100.0
-    // Formula: 1 + (sensitivity / distance)
-    // Close match (dist=1) + high sensitivity (2.0) = 1 + 2.0/2 = 2x boost
-    ml_confidence_mult := 1.0 + (ml_boost_sens / (1.0 + min_bull_dist))
-
-// ML-Driven Pot Allocation: Dynamic pot usage based on ML confidence
-// Key insight: Use pot aggressively when ML is VERY confident (80%+)
-// Keep reserve for true catastrophic dips
-float available_pot = savings_pot * (1.0 - pot_reserve_pct)  // Reserve 20% for emergencies
-
-// Confidence scaling:
-// prob = 50% → pot_factor = 0.0 (no extra pot)
-// prob = 70% → pot_factor = 0.4 (moderate)
-// prob = 90% → pot_factor = 0.8 (aggressive)
-// prob = 100% → pot_factor = 1.0 (maximum)
-float ml_pot_factor = 0.0
-if prob > 50
-    ml_pot_factor := math.pow((prob - 50.0) / 50.0, 0.5)  // Aggressive exponential scaling 
-
-float recommended_amount = 0.0
-float pot_usage_debug = 0.0
-
-// TIER 1: FEAR BUY (Extreme dip) - Most aggressive
-// Uses base budget + smart multiplier + ML-driven pot allocation
-// --- STRICT ACCOUNTING LOGIC ---
-// 1. Determine Funding Sources
-// FIX: "Monthly Salary" is only available if NO buys have occurred this month yet.
-// If we bought ANYTHING (Pullback, Oversold, Fear), the monthly cash is gone.
-bool any_buy_this_month = already_pullback_bought or already_strong_bought
-float monthly_salary = any_buy_this_month ? 0.0 : base_budget
-float available_capital = monthly_salary + available_pot
-
-// 2. Determine Ideal Investment Size (Unconstrained)
-float raw_smart_val = calc_smart_amount(close, base_budget, effective_rho, smart_cap)
-float desired_spend = 0.0
-float ml_bonus      = 0.0
-
-if trigger_max
-    // FEAR: Max Boost + ML Confidence
-    desired_spend := math.max(raw_smart_val * max_boost * ml_confidence_mult, base_budget)
-    // Add pot bonus (Aggressive)
-    ml_bonus := math.min(desired_spend * 0.5, available_pot * ml_pot_factor)
-
-else if trigger_strong
-    // OVERSOLD: Strong Boost
-    desired_spend := math.max(raw_smart_val * strong_boost * ml_confidence_mult, base_budget)
-    // Add pot bonus (Moderate)
-    ml_bonus := math.min(desired_spend * 0.35, available_pot * ml_pot_factor * 0.85)
-
-else if trigger_std
-    // PULLBACK: Standard
-    desired_spend := math.max(raw_smart_val * ml_confidence_mult, base_budget)
-    // Add pot bonus (Conservative)
-    ml_bonus := math.min(desired_spend * 0.25, available_pot * ml_pot_factor * 0.6)
-
-// Total we WANT to spend
-float total_wanted = desired_spend + ml_bonus
-
-// 3. Apply Budget Constraints (Cannot spend more than we have)
-// If we want 300, but have 100(Salary)+50(Pot) = 150, we buy 150.
-if total_wanted > 0
-    recommended_amount := math.min(total_wanted, available_capital)
-
-// 4. Update Accounts
-if recommended_amount > 0
-    // Deduct from Salary first
-    float from_salary = math.min(recommended_amount, monthly_salary)
-    // Remainder from Pot
-    float from_pot = recommended_amount - from_salary
-    
-    // Decrease Pot
-    savings_pot -= from_pot
-    pot_usage_debug := from_pot
-
-// --- UPDATE ACTIVE PORTFOLIO ---
-if recommended_amount > 0
-    smart_invested += recommended_amount
-    smart_units += recommended_amount / close
-
-// ==========================================
-// 7. VISUALS (Labels & UI)
-// ==========================================
-group_vis = "7. Visuals & UI"
-show_dash = input.bool(true, "Show Performance Dashboard", group=group_vis)
-
-if trigger_std and recommended_amount >= 1
-    label.new(bar_index, low, text="PULLBACK\n€" + str.tostring(recommended_amount, "#"), color=color.green, textcolor=color.white, style=label.style_label_up, yloc=yloc.belowbar)
-if trigger_strong and recommended_amount >= 1
-    label.new(bar_index, low, text="OVERSOLD\n€" + str.tostring(recommended_amount, "#"), color=color.purple, textcolor=color.white, style=label.style_label_up, yloc=yloc.belowbar)
-if trigger_max and recommended_amount >= 1
-    label.new(bar_index, low, text="FEAR\n€" + str.tostring(recommended_amount, "#"), color=color.new(#E91E63, 0), textcolor=color.white, style=label.style_label_up, yloc=yloc.belowbar)
-
-if show_pot_debug and pot_usage_debug >= 1
-    label.new(bar_index, high, text="POT\n€" + str.tostring(pot_usage_debug, "#"), color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, yloc=yloc.abovebar)
-
-bgcolor(is_new_month ? color.new(color.gray, 85) : na, title="New Month Start")
-
-// ==========================================
-// 8. METRICS CALCULATION (END OF SCRIPT)
-// ==========================================
-// Calculate Max Drawdown: Worst peak-to-trough decline from any historical high
-// Used to measure risk exposure - higher drawdown = strategy experienced larger losses
-var float smart_peak = 0.0   // Highest equity value reached so far (smart strategy)
-var float monthly_peak = 0.0  // Highest equity value reached so far (passive strategy)
-var float smart_max_dd = 0.0  // Worst drawdown seen (smart strategy)
-var float monthly_max_dd = 0.0  // Worst drawdown seen (passive strategy)
-
-float smart_equity = smart_units * close
-float monthly_equity_val = monthly_units * close
-
-// Smart strategy peak tracking
-if smart_equity > smart_peak
-    smart_peak := smart_equity
-if smart_peak > 0
-    float dd = (smart_peak - smart_equity) / smart_peak
-    if dd > smart_max_dd
-        smart_max_dd := dd  // Store worst drawdown if this exceeds previous worst
-
-// Passive strategy peak tracking
-if monthly_equity_val > monthly_peak
-    monthly_peak := monthly_equity_val
-if monthly_peak > 0
-    float m_dd = (monthly_peak - monthly_equity_val) / monthly_peak
-    if m_dd > monthly_max_dd
-        monthly_max_dd := m_dd
-
-// Sortino Ratio: Risk-adjusted returns penalizing only downside volatility
-// Unlike Sharpe (all volatility), Sortino ignores upside moves
-// Formula: Average Return / Downside Deviation = higher = better
-// Why? Investors care more about "bad" swings than "good" ones
+// Moved to Section 8 for better accuracy (after all buys are finalized)
 calc_sortino(arr) =>
     if array.size(arr) < 2
         0.0
@@ -551,8 +123,62 @@ calc_sortino(arr) =>
                 sum_sq_neg += math.pow(r, 2)
         // Downside deviation = std dev of losses only
         float downside_dev = math.sqrt(sum_sq_neg / array.size(arr))
-        // Return positive even with losses if avg trend is up
+        // Return daily ratio (will be annualized in display)
         downside_dev > 0 ? (avg_ret / downside_dev) : 0.0
+
+// ==========================================
+// 8. METRICS CALCULATION (END OF SCRIPT)
+// ==========================================
+// 1. Calculate Daily Returns (Time-Weighted to ignore cash injections)
+if is_in_period and barstate.isconfirmed
+    // Smart Strategy Return
+    // Formula: (Current_Value - Cash_Injected_Today - Prev_Value) / Prev_Value
+    float s_equity = smart_units * close
+    if smart_prev_equity > 0
+        // We subtract recommended_amount because it was added to smart_units this bar
+        float ret = (s_equity - recommended_amount - smart_prev_equity) / smart_prev_equity
+        array.push(smart_returns, ret)
+    smart_prev_equity := s_equity
+
+    // Monthly Strategy Return
+    float m_equity = monthly_units * close
+    if monthly_prev_equity > 0
+        // Monthly only buys on is_new_month
+        float cash_flow = is_new_month ? base_budget : 0.0
+        float ret_m = (m_equity - cash_flow - monthly_prev_equity) / monthly_prev_equity
+        array.push(monthly_returns, ret_m)
+    monthly_prev_equity := m_equity
+
+// 2. Performance Metrics
+// Annualization Factor: sqrt(252) for standard trading days
+float annual_factor = math.sqrt(252)
+float smart_sortino = calc_sortino(smart_returns) * annual_factor
+float monthly_sortino = calc_sortino(monthly_returns) * annual_factor
+
+// Calculate Max Drawdown: Worst peak-to-trough decline from any historical high
+var float smart_peak = 0.0   
+var float monthly_peak = 0.0  
+var float smart_max_dd = 0.0  
+var float monthly_max_dd = 0.0  
+
+float current_smart_equity = smart_units * close
+float current_monthly_equity = monthly_units * close
+
+// Smart strategy peak tracking
+if current_smart_equity > smart_peak
+    smart_peak := current_smart_equity
+if smart_peak > 0
+    float dd = (smart_peak - current_smart_equity) / smart_peak
+    if dd > smart_max_dd
+        smart_max_dd := dd  
+
+// Passive strategy peak tracking
+if current_monthly_equity > monthly_peak
+    monthly_peak := current_monthly_equity
+if monthly_peak > 0
+    float m_dd = (monthly_peak - current_monthly_equity) / monthly_peak
+    if m_dd > monthly_max_dd
+        monthly_max_dd := m_dd
 
 float smart_sortino = calc_sortino(smart_returns)
 float monthly_sortino = calc_sortino(monthly_returns)

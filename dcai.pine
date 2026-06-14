@@ -527,14 +527,15 @@ calc_sortino(arr) =>
 float smart_sortino = calc_sortino(smart_returns) * annual_factor
 float monthly_sortino = calc_sortino(monthly_returns) * annual_factor
 
-// Calculate Max Drawdown
+// Calculate Max Drawdown (Total Portfolio: Invested + Cash)
 var float smart_peak = 0.0   
 var float monthly_peak = 0.0  
 var float smart_max_dd = 0.0  
 var float monthly_max_dd = 0.0  
 
-float cur_smart_equity = smart_units * close
-float cur_monthly_equity = monthly_units * close
+// TOTAL EQUITY = Value of units + Unspent cash in Savings Pot
+float cur_smart_equity = (smart_units * close) + savings_pot
+float cur_monthly_equity = (monthly_units * close) // Blind DCA has 0 cash
 
 if cur_smart_equity > smart_peak
     smart_peak := cur_smart_equity
@@ -550,12 +551,15 @@ if monthly_peak > 0
     if m_dd > monthly_max_dd
         monthly_max_dd := m_dd
 
-// Performance ratios
-float smart_roi = smart_invested > 0 ? (cur_smart_equity - smart_invested) / smart_invested : 0.0
-float smart_profit_risk = smart_max_dd > 0 ? smart_roi / smart_max_dd : 0.0  
+// --- FAIR PERFORMANCE COMPARISON (Portfolio Level) ---
+// Total Capital Committed is tracked by monthly_invested for both strategies.
+float total_budget = monthly_invested 
 
-float monthly_roi = monthly_invested > 0 ? (cur_monthly_equity - monthly_invested) / monthly_invested : 0.0
-float monthly_profit_risk = monthly_max_dd > 0 ? monthly_roi / monthly_max_dd : 0.0
+float smart_portfolio_roi = total_budget > 0 ? (cur_smart_equity - total_budget) / total_budget : 0.0
+float smart_profit_risk = smart_max_dd > 0 ? smart_portfolio_roi / smart_max_dd : 0.0  
+
+float monthly_portfolio_roi = total_budget > 0 ? (cur_monthly_equity - total_budget) / total_budget : 0.0
+float monthly_profit_risk = monthly_max_dd > 0 ? monthly_portfolio_roi / monthly_max_dd : 0.0
 
 float smart_avg_entry = smart_units > 0 ? smart_invested / smart_units : 0.0
 float monthly_avg_entry = monthly_units > 0 ? monthly_invested / monthly_units : 0.0
@@ -617,30 +621,27 @@ if barstate.islast and show_dash
     r += 1
 
     // --- COMPARATIVE METRICS SECTION ---
-    table.cell(dash, 0, r, "Benchmark", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
+    table.cell(dash, 0, r, "Portfolio", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
     table.cell(dash, 1, r, "DCAi", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
-    table.cell(dash, 2, r, "vs Blind DCA", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
+    table.cell(dash, 2, r, "Blind DCA", text_halign=text.align_center, text_color=color.gray, bgcolor=color.new(color.black, 0))
     r += 1
 
-    // Total Invested
-    table.cell(dash, 0, r, "Invested", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, "€" + str.tostring(smart_invested, "#"), text_color=color.white)
-    table.cell(dash, 2, r, "€" + str.tostring(monthly_invested, "#"), text_color=color.white)
+    // Total Budget Committed
+    table.cell(dash, 0, r, "Budget", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, "€" + str.tostring(total_budget, "#"), text_color=color.white)
+    table.cell(dash, 2, r, "€" + str.tostring(total_budget, "#"), text_color=color.white)
     r += 1
 
-    // Current Equity (Total Value)
+    // Current Equity (Value + Cash)
     table.cell(dash, 0, r, "Value", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, "€" + str.tostring(cur_smart_equity, "#"), text_color=color.white)
     table.cell(dash, 2, r, "€" + str.tostring(cur_monthly_equity, "#"), text_color=color.white)
     r += 1
 
-    // PnL (Net Profit/Loss)
-    float smart_pnl = cur_smart_equity - smart_invested
-    float monthly_pnl = cur_monthly_equity - monthly_invested
-    
-    table.cell(dash, 0, r, "Net", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, (smart_pnl >= 0 ? "+" : "") + "€" + str.tostring(smart_pnl, "#"), text_color=smart_pnl >= 0 ? color.lime : color.red)
-    table.cell(dash, 2, r, (monthly_pnl >= 0 ? "+" : "") + "€" + str.tostring(monthly_pnl, "#"), text_color=monthly_pnl >= 0 ? color.gray : color.red)
+    // Net PnL %
+    table.cell(dash, 0, r, "Total ROI", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, str.tostring(smart_portfolio_roi * 100, "#.##") + "%", text_color=smart_portfolio_roi >= 0 ? color.lime : color.red)
+    table.cell(dash, 2, r, str.tostring(monthly_portfolio_roi * 100, "#.##") + "%", text_color=monthly_portfolio_roi >= 0 ? color.gray : color.red)
     r += 1
 
     // Avg Entry Price
@@ -661,9 +662,9 @@ if barstate.islast and show_dash
     table.cell(dash, 2, r, str.tostring(monthly_max_dd * 100, "#.1") + "%", text_color=color.gray)
     r += 1
 
-    // Profit per Risk
+    // Profit per Risk (Portfolio Level)
     table.cell(dash, 0, r, "Profit/Risk", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, str.tostring(smart_profit_risk, "#.##"), text_color=smart_profit_risk > 0 ? color.lime : color.gray)
+    table.cell(dash, 1, r, str.tostring(smart_profit_risk, "#.##"), text_color=smart_profit_risk > monthly_profit_risk ? color.lime : color.gray)
     table.cell(dash, 2, r, str.tostring(monthly_profit_risk, "#.##"), text_color=color.gray)
     r += 1
 

@@ -570,9 +570,11 @@ float monthly_avg_entry = monthly_units > 0 ? monthly_invested / monthly_units :
 // ==========================================
 // 9. DASHBOARD
 // ==========================================
-var table dash = table.new(position.middle_right, 3, 16, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1)
+group_dash = "9. Dashboard"
+show_dash = input.bool(true, "Show Dashboard", group=group_dash)
+var table dash = show_dash ? table.new(position.middle_right, 3, 16, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1) : na
 
-if barstate.islast
+if barstate.islast and show_dash
     int r = 0
     table.cell(dash, 0, r, "DCAi", text_color=color.white, bgcolor=color.new(#2962FF, 0))
     table.cell(dash, 1, r, "Value", text_color=color.white, bgcolor=color.new(#2962FF, 0))

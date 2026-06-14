@@ -630,13 +630,13 @@ if barstate.islast and show_dash
 
     // Current Equity (Total Value)
     table.cell(dash, 0, r, "Value", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, "€" + str.tostring(smart_equity, "#"), text_color=color.white)
-    table.cell(dash, 2, r, "€" + str.tostring(monthly_equity_val, "#"), text_color=color.white)
+    table.cell(dash, 1, r, "€" + str.tostring(cur_smart_equity, "#"), text_color=color.white)
+    table.cell(dash, 2, r, "€" + str.tostring(cur_monthly_equity, "#"), text_color=color.white)
     r += 1
 
     // PnL (Net Profit/Loss)
-    float smart_pnl = smart_equity - smart_invested
-    float monthly_pnl = monthly_equity_val - monthly_invested
+    float smart_pnl = cur_smart_equity - smart_invested
+    float monthly_pnl = cur_monthly_equity - monthly_invested
     
     table.cell(dash, 0, r, "Net", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, (smart_pnl >= 0 ? "+" : "") + "€" + str.tostring(smart_pnl, "#"), text_color=smart_pnl >= 0 ? color.lime : color.red)

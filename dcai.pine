@@ -104,32 +104,32 @@ if is_new_month
 
     // PASSIVE BENCHMARK STRATEGY: Always buy base_budget on 1st bar of month
     // (Blind DCA: no timing, no optimization - used for comparison with Smart strategy)
-    if is_in_period
+    if is_in_period and barstate.isconfirmed
         monthly_invested += base_budget
         monthly_units += base_budget / close
 
 // --- TRACK RETURNS FOR SORTINO ---
 // Calculate daily returns: (today's equity - yesterday's) / yesterday's
-if is_in_period
+if is_in_period and barstate.isconfirmed
     // Active Strategy Equity
-    float smart_equity = smart_units * close
+    float smart_equity_val = smart_units * close
     // Note: We measure returns on invested equity only (not cash drag from savings pot)
     // This isolates the quality of our entry timing
     
     if smart_prev_equity > 0
-        float ret = (smart_equity - smart_prev_equity) / smart_prev_equity
+        float ret = (smart_equity_val - smart_prev_equity) / smart_prev_equity
         // Filter out massive jumps caused by large deposits (approx filter)
         if math.abs(ret) < 0.5  // Ignore > 50% swings (likely deposits, not price moves)
             array.push(smart_returns, ret)
-    smart_prev_equity := smart_equity
+    smart_prev_equity := smart_equity_val
 
     // Monthly Strategy Equity
-    float monthly_equity = monthly_units * close
+    float monthly_equity_val_ret = monthly_units * close
     if monthly_prev_equity > 0
-        float ret_m = (monthly_equity - monthly_prev_equity) / monthly_prev_equity
+        float ret_m = (monthly_equity_val_ret - monthly_prev_equity) / monthly_prev_equity
         if math.abs(ret_m) < 0.5
             array.push(monthly_returns, ret_m)
-    monthly_prev_equity := monthly_equity
+    monthly_prev_equity := monthly_equity_val_ret
 
 
 // DCA Amount Calculator: Adaptive position sizing based on price deviations

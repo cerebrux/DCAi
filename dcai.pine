@@ -109,27 +109,7 @@ if is_new_month
         monthly_units += base_budget / close
 
 // --- TRACK RETURNS FOR SORTINO ---
-// Calculate daily returns: (today's equity - yesterday's) / yesterday's
-if is_in_period and barstate.isconfirmed
-    // Active Strategy Equity
-    float smart_equity_val = smart_units * close
-    // Note: We measure returns on invested equity only (not cash drag from savings pot)
-    // This isolates the quality of our entry timing
-    
-    if smart_prev_equity > 0
-        float ret = (smart_equity_val - smart_prev_equity) / smart_prev_equity
-        // Filter out massive jumps caused by large deposits (approx filter)
-        if math.abs(ret) < 0.5  // Ignore > 50% swings (likely deposits, not price moves)
-            array.push(smart_returns, ret)
-    smart_prev_equity := smart_equity_val
-
-    // Monthly Strategy Equity
-    float monthly_equity_val_ret = monthly_units * close
-    if monthly_prev_equity > 0
-        float ret_m = (monthly_equity_val_ret - monthly_prev_equity) / monthly_prev_equity
-        if math.abs(ret_m) < 0.5
-            array.push(monthly_returns, ret_m)
-    monthly_prev_equity := monthly_equity_val_ret
+// Moved to Section 8 for better accuracy (Time-Weighted Returns)
 
 
 // DCA Amount Calculator: Adaptive position sizing based on price deviations
@@ -508,65 +488,75 @@ bgcolor(is_new_month ? color.new(color.gray, 85) : na, title="New Month Start")
 // ==========================================
 // 8. METRICS CALCULATION (END OF SCRIPT)
 // ==========================================
-// Calculate Max Drawdown: Worst peak-to-trough decline from any historical high
-// Used to measure risk exposure - higher drawdown = strategy experienced larger losses
-var float smart_peak = 0.0   // Highest equity value reached so far (smart strategy)
-var float monthly_peak = 0.0  // Highest equity value reached so far (passive strategy)
-var float smart_max_dd = 0.0  // Worst drawdown seen (smart strategy)
-var float monthly_max_dd = 0.0  // Worst drawdown seen (passive strategy)
+// 1. Calculate Daily Returns (Time-Weighted to ignore cash injections)
+if is_in_period and barstate.isconfirmed
+    // Smart Strategy Return
+    float s_equity = smart_units * close
+    if smart_prev_equity > 0
+        // recommended_amount was added to smart_units this bar
+        float ret = (s_equity - recommended_amount - smart_prev_equity) / smart_prev_equity
+        array.push(smart_returns, ret)
+    smart_prev_equity := s_equity
 
-float smart_equity = smart_units * close
-float monthly_equity_val = monthly_units * close
+    // Monthly Strategy Return
+    float m_equity = monthly_units * close
+    if monthly_prev_equity > 0
+        float cash_flow = is_new_month ? base_budget : 0.0
+        float ret_m = (m_equity - cash_flow - monthly_prev_equity) / monthly_prev_equity
+        array.push(monthly_returns, ret_m)
+    monthly_prev_equity := m_equity
 
-// Smart strategy peak tracking
-if smart_equity > smart_peak
-    smart_peak := smart_equity
-if smart_peak > 0
-    float dd = (smart_peak - smart_equity) / smart_peak
-    if dd > smart_max_dd
-        smart_max_dd := dd  // Store worst drawdown if this exceeds previous worst
-
-// Passive strategy peak tracking
-if monthly_equity_val > monthly_peak
-    monthly_peak := monthly_equity_val
-if monthly_peak > 0
-    float m_dd = (monthly_peak - monthly_equity_val) / monthly_peak
-    if m_dd > monthly_max_dd
-        monthly_max_dd := m_dd
+// 2. Performance Metrics
+// Annualization Factor: sqrt(252) for standard trading days
+float annual_factor = math.sqrt(252)
 
 // Sortino Ratio: Risk-adjusted returns penalizing only downside volatility
-// Unlike Sharpe (all volatility), Sortino ignores upside moves
-// Formula: Average Return / Downside Deviation = higher = better
-// Why? Investors care more about "bad" swings than "good" ones
 calc_sortino(arr) =>
     if array.size(arr) < 2
         0.0
     else
-        float avg_ret = array.avg(arr)  // Average daily return
+        float avg_ret = array.avg(arr)  
         float sum_sq_neg = 0.0
-        // Only sum negative returns (downside risk)
         for i = 0 to array.size(arr) - 1
             float r = array.get(arr, i)
-            if r < 0  // Count losses, ignore gains
+            if r < 0  
                 sum_sq_neg += math.pow(r, 2)
-        // Downside deviation = std dev of losses only
         float downside_dev = math.sqrt(sum_sq_neg / array.size(arr))
-        // Return positive even with losses if avg trend is up
         downside_dev > 0 ? (avg_ret / downside_dev) : 0.0
 
-float smart_sortino = calc_sortino(smart_returns)
-float monthly_sortino = calc_sortino(monthly_returns)
+float smart_sortino = calc_sortino(smart_returns) * annual_factor
+float monthly_sortino = calc_sortino(monthly_returns) * annual_factor
 
-// Performance ratios: Compare risk-adjusted returns
-// Smart ROI vs Passive ROI shows the value of timing
-float smart_roi = smart_invested > 0 ? (smart_equity - smart_invested) / smart_invested : 0.0
-float smart_profit_risk = smart_max_dd > 0 ? smart_roi / smart_max_dd : 0.0  // Calmar-like ratio
+// Calculate Max Drawdown
+var float smart_peak = 0.0   
+var float monthly_peak = 0.0  
+var float smart_max_dd = 0.0  
+var float monthly_max_dd = 0.0  
 
-float monthly_roi = monthly_invested > 0 ? (monthly_equity_val - monthly_invested) / monthly_invested : 0.0
+float cur_smart_equity = smart_units * close
+float cur_monthly_equity = monthly_units * close
+
+if cur_smart_equity > smart_peak
+    smart_peak := cur_smart_equity
+if smart_peak > 0
+    float dd = (smart_peak - cur_smart_equity) / smart_peak
+    if dd > smart_max_dd
+        smart_max_dd := dd  
+
+if cur_monthly_equity > monthly_peak
+    monthly_peak := cur_monthly_equity
+if monthly_peak > 0
+    float m_dd = (monthly_peak - cur_monthly_equity) / monthly_peak
+    if m_dd > monthly_max_dd
+        monthly_max_dd := m_dd
+
+// Performance ratios
+float smart_roi = smart_invested > 0 ? (cur_smart_equity - smart_invested) / smart_invested : 0.0
+float smart_profit_risk = smart_max_dd > 0 ? smart_roi / smart_max_dd : 0.0  
+
+float monthly_roi = monthly_invested > 0 ? (cur_monthly_equity - monthly_invested) / monthly_invested : 0.0
 float monthly_profit_risk = monthly_max_dd > 0 ? monthly_roi / monthly_max_dd : 0.0
 
-// Average Entry Price: Cost basis per unit
-// Smart strategy should have lower avg entry (bought more on dips)
 float smart_avg_entry = smart_units > 0 ? smart_invested / smart_units : 0.0
 float monthly_avg_entry = monthly_units > 0 ? monthly_invested / monthly_units : 0.0
 

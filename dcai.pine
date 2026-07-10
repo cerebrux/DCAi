@@ -341,20 +341,6 @@ for k = 0 to neighbors_found - 1
     if array.get(predictions, k) > 0.5
         weighted_vote += w
 prob = weight_sum > 0 ? (weighted_vote / weight_sum) * 100.0 : 0.0
-// is_ml_bottom: Probability >= adaptive threshold means "market bottom pattern detected"
-// Threshold adjusts automatically based on recent prediction accuracy
-is_ml_bottom = prob >= effective_prob_thresh
-
-// Track distance to closest bullish neighbor (used for confidence boost)
-// Closer match = higher confidence in the buy signal
-var float min_bull_dist = 100.0
-if neighbors_found > 0
-    min_bull_dist := 100.0
-    for k = 0 to neighbors_found - 1
-        if array.get(predictions, k) > 0.5  // This neighbor predicted bullish
-            float d_val = array.get(distances, k)
-            if d_val < min_bull_dist
-                min_bull_dist := d_val  // Store distance to closest bullish pattern
 
 // --- WALK-FORWARD VALIDATION ---
 // Track prediction accuracy over time and adapt threshold dynamically
@@ -383,12 +369,26 @@ while array.size(prediction_hits) > 100
 float rolling_accuracy = array.size(prediction_hits) >= 10 ? array.avg(prediction_hits) : 0.5
 // Adaptive threshold: high accuracy = raise bar (selective), low accuracy = lower bar (permissive)
 // accuracy=50% → thresh=55, accuracy=70% → thresh=64, accuracy=90% → thresh=78, accuracy=100% → thresh=85
-float effective_prob_thresh = math.min(85, math.max(55, 50 + (rolling_accuracy - 0.5) * 70))
+float effective_prob_thresh = math.min(85, math.max(knn_prob_thresh, 50 + (rolling_accuracy - 0.5) * 70))
+
+// is_ml_bottom: Probability >= adaptive threshold means "market bottom pattern detected"
+is_ml_bottom = prob >= effective_prob_thresh
 
 // Store current prediction for future verification
 if barstate.isconfirmed and is_in_period
     array.push(prediction_log_bar, bar_index)
     array.push(prediction_log_prob, prob)
+
+// Track distance to closest bullish neighbor (used for confidence boost)
+// Closer match = higher confidence in the buy signal
+var float min_bull_dist = 100.0
+if neighbors_found > 0
+    min_bull_dist := 100.0
+    for k = 0 to neighbors_found - 1
+        if array.get(predictions, k) > 0.5  // This neighbor predicted bullish
+            float d_val = array.get(distances, k)
+            if d_val < min_bull_dist
+                min_bull_dist := d_val  // Store distance to closest bullish pattern
 
 if time >= start_date
     array.push(price_history, close)

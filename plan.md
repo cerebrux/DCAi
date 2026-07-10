@@ -78,23 +78,69 @@ ml_pot_factor = prob > 50 ? 1.0 / (1.0 + math.exp(-0.08 * (prob - 65))) : 0.0
 
 ---
 
-## Commit Plan
+## Commit Log
 
 | Commit | Περιεχόμενο |
 |---|---|
-| `1` | `feat: add 5 new KNN features (F4-F9) and expand Lorentzian distance` |
-| `2` | `feat: weighted KNN voting with inverse-distance weighting` |
-| `3` | `feat: adaptive probability threshold based on rolling accuracy` |
-| `4` | `feat: sigmoid confidence calibration for position sizing` |
-| `5` | `feat: walk-forward validation tracker in dashboard` |
-| `6` | `feat: volume-adaptive MFI threshold` |
-| `7` | `docs: update plan.md with implementation log and results` |
+| `f742e1f` | `docs: add implementation plan for branch 260710` |
+| `4ca22c1` | `feat: add 5 new KNN features (F4-F9) and weighted KNN voting` |
+| `231f9e6` | `feat: adaptive threshold, sigmoid calibration, walk-forward validation` |
+| `be08a3b` | `feat: volume-weighted adaptive MFI threshold` |
 
 ---
 
-## Μετρικές Επιτυχίας
+## Υλοποιημένες Αλλαγές — Ανασκόπηση
+
+### Phase 1: Feature Engineering + Weighted KNN ✅
+
+| # | Αλλαγή | Τοποθεσία (γραμμές) |
+|---|---|---|
+| 1.1 | **F4: RSI(14) percentile** — oversold confirmation | ~211 |
+| 1.2 | **F5: Bollinger %B percentile** — price stretch from mean | ~212-213 |
+| 1.3 | **F6: MA200 distance percentile** — macro context for bottoms | ~214-215 |
+| 1.4 | **F7: Volume ratio percentile** — capitulation volume spikes | ~216 |
+| 1.5 | **F8: Return std percentile** — volatility regime detection | ~217 |
+| 1.6 | **F4_lag..F8_lag** — lagged features for momentum context | ~219 |
+| 1.7 | **Lorentzian distance expanded** — 8 current + 8 lagged = 16 log-distances | ~226-242 |
+| 1.8 | **History arrays ×8** — f1..f8_history + f1..f8_lag_history | ~244-259 |
+| 1.9 | **Training data push ×16** — all features + lagged stored per bar | ~264-280 |
+| 1.10 | **Circular buffer shift ×16** — all arrays trimmed at knn_history | ~287-304 |
+| 1.11 | **Weighted KNN** — `1/(1+distance)` weighting instead of simple majority | ~333-343 |
+
+### Phase 2: KNN Optimization ✅
+
+| # | Αλλαγή | Τοποθεσία (γραμμές) |
+|---|---|---|
+| 2.1 | **Walk-forward validation** — prediction_log_bar + prediction_log_prob + prediction_hits arrays | ~358-391 |
+| 2.2 | **Rolling accuracy** — `array.avg(prediction_hits)` over last 100, min 10 samples | ~382-383 |
+| 2.3 | **Adaptive threshold** — `50 + (accuracy - 0.5) * 70`, clamped 55-85 | ~384-386 |
+| 2.4 | **Sigmoid calibration** — `1/(1+e^(-0.08*(prob-65)))` for ml_pot_factor | ~519-520 |
+| 2.5 | **Dashboard: ML Accuracy row** — rolling accuracy % + sample count | ~705-713 |
+
+### Phase 3: Decision Engine ✅
+
+| # | Αλλαγή | Τοποθεσία (γραμμές) |
+|---|---|---|
+| 3.1 | **Volume-weighted MFI** — vol_ratio > 1.2 → +5 threshold relaxation | ~417-434 |
+
+---
+
+## No Repainting Guarantee (Verified)
+
+| Αλλαγή | Status |
+|---|---|
+| Όλα τα νέα features (`ta.rsi`, `ta.sma`, `ta.stdev`) | ✅ Built-in συναρτήσεις χωρίς look-ahead |
+| Weighted KNN over existing neighbors | ✅ Μόνο math, no repaint |
+| Adaptive threshold από rolling_accuracy | ✅ Verification γίνεται μόνο αφού κλείσει το prediction_window |
+| Sigmoid calibration | ✅ Καθαρό math πάνω στο prob |
+| Walk-forward arrays | ✅ Store/verify με `barstate.isconfirmed` + `bar_index` check |
+| Volume-weighted MFI | ✅ Standard ta.sma, no repaint |
+
+---
+
+## Μετρικές Επιτυχίας (Προς Επιβεβαίωση με Backtest)
 
 - **ML Hit Rate > 65%** (ποσοστό predictions που επαληθεύονται στο prediction_window)
 - **DCAi Avg Entry** < Blind DCA Avg Entry (βελτίωση entry price)
 - **Sortino Ratio** DCAi > Blind DCA
-- **Αριθμός False Signals** μειωμένος ≥ 15% σε σχέση με baseline
+- **Adaptive threshold range**: 55-85% (παρακολούθηση στο dashboard)

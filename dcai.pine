@@ -335,12 +335,15 @@ if array.size(train_labels) >= knn_neighbors
 float weight_sum = 0.0
 float weighted_vote = 0.0
 int neighbors_found = array.size(predictions)
-for k = 0 to neighbors_found - 1
-    float w = 1.0 / (1.0 + array.get(distances, k))
-    weight_sum += w
-    if array.get(predictions, k) > 0.5
-        weighted_vote += w
-prob = weight_sum > 0 ? (weighted_vote / weight_sum) * 100.0 : 0.0
+float prob = 0.0
+if neighbors_found > 0
+    for k = 0 to neighbors_found - 1
+        float w = 1.0 / (1.0 + array.get(distances, k))
+        weight_sum += w
+        if array.get(predictions, k) > 0.5
+            weighted_vote += w
+    if weight_sum > 0
+        prob := (weighted_vote / weight_sum) * 100.0
 
 // --- WALK-FORWARD VALIDATION ---
 // Track prediction accuracy over time and adapt threshold dynamically

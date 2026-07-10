@@ -203,31 +203,60 @@ ml_boost_sens   = input.float(2.0, "ML Confidence Sensitivity", minval=0.1, step
 roc_len_ml = input.int(14, "Feature: ROC Length", group=group_ml)
 int prediction_window = 4  // Bars ahead we're trying to predict (4-bar forward-looking)
 
-// Feature Engineering: Normalize 3 key indicators to percentile rank (0-100)
+// Feature Engineering: Normalize features to percentile rank (0-100)
 // This makes them scale-independent and comparable across different market regimes
 f1 = ta.percentrank(mf, 100)  // MFI percentile: Money Flow Intensity (oversold = low)
 f2 = ta.percentrank(ta.roc(close, roc_len_ml), 100)  // ROC percentile: momentum/velocity
-f3 = ta.percentrank(ta.atr(14), 100)  // ATR percentile: volatility level 
+f3 = ta.percentrank(ta.atr(14), 100)  // ATR percentile: volatility level
+f4 = ta.percentrank(ta.rsi(close, 14), 100)  // RSI percentile: oversold confirmation
+float bb_percent_b = (close - ta.sma(close, 20)) / (2 * ta.stdev(close, 20))
+f5 = ta.percentrank(bb_percent_b, 100)  // Bollinger %B percentile: price stretch
+float ma200_dist = (close - ta.sma(close, 200)) / ta.sma(close, 200)
+f6 = ta.percentrank(ma200_dist, 100)  // MA200 distance percentile: macro context
+f7 = ta.percentrank(volume / ta.sma(volume, 50), 100)  // Volume ratio percentile: capitulation
+f8 = ta.percentrank(ta.stdev(close / close[1] - 1, 5), 100)  // Return std percentile: regime detection
+// Lagged version of F4-F8 for momentum context
+float f4_lag = f4[1], float f5_lag = f5[1], float f6_lag = f6[1], float f7_lag = f7[1], float f8_lag = f8[1]
 
 // Lorentzian Distance: Robust distance metric used to find "closest" historical patterns
 // Instead of Euclidean (straight-line), we use log-based distance:
 // - log() dampens large differences (important features don't overwhelm)
 // - Compares current + lagged features (momentum context matters)
 // Result: distances < 1 mean close match, > 2 mean dissimilar patterns
-get_lorentzian_distance(f1, f2, f3, f1_lag, f2_lag, f3_lag, i, f1_arr, f2_arr, f3_arr, f1_lag_arr, f2_lag_arr, f3_lag_arr) =>
-    math.log(1 + math.abs(f1 - array.get(f1_arr, i))) +  // Current MFI distance
-     math.log(1 + math.abs(f2 - array.get(f2_arr, i))) +  // Current ROC distance
-     math.log(1 + math.abs(f3 - array.get(f3_arr, i))) +  // Current ATR distance
-     math.log(1 + math.abs(f1_lag - array.get(f1_lag_arr, i))) +  // Previous MFI distance
-     math.log(1 + math.abs(f2_lag - array.get(f2_lag_arr, i))) +  // Previous ROC distance
-     math.log(1 + math.abs(f3_lag - array.get(f3_lag_arr, i)))   // Previous ATR distance
+get_lorentzian_distance(f1, f2, f3, f4, f5, f6, f7, f8, f1_lag, f2_lag, f3_lag, f4_lag, f5_lag, f6_lag, f7_lag, f8_lag, i, f1_arr, f2_arr, f3_arr, f4_arr, f5_arr, f6_arr, f7_arr, f8_arr, f1_lag_arr, f2_lag_arr, f3_lag_arr, f4_lag_arr, f5_lag_arr, f6_lag_arr, f7_lag_arr, f8_lag_arr) =>
+    math.log(1 + math.abs(f1 - array.get(f1_arr, i))) +
+     math.log(1 + math.abs(f2 - array.get(f2_arr, i))) +
+     math.log(1 + math.abs(f3 - array.get(f3_arr, i))) +
+     math.log(1 + math.abs(f4 - array.get(f4_arr, i))) +
+     math.log(1 + math.abs(f5 - array.get(f5_arr, i))) +
+     math.log(1 + math.abs(f6 - array.get(f6_arr, i))) +
+     math.log(1 + math.abs(f7 - array.get(f7_arr, i))) +
+     math.log(1 + math.abs(f8 - array.get(f8_arr, i))) +
+     math.log(1 + math.abs(f1_lag - array.get(f1_lag_arr, i))) +
+     math.log(1 + math.abs(f2_lag - array.get(f2_lag_arr, i))) +
+     math.log(1 + math.abs(f3_lag - array.get(f3_lag_arr, i))) +
+     math.log(1 + math.abs(f4_lag - array.get(f4_lag_arr, i))) +
+     math.log(1 + math.abs(f5_lag - array.get(f5_lag_arr, i))) +
+     math.log(1 + math.abs(f6_lag - array.get(f6_lag_arr, i))) +
+     math.log(1 + math.abs(f7_lag - array.get(f7_lag_arr, i))) +
+     math.log(1 + math.abs(f8_lag - array.get(f8_lag_arr, i)))
 
 var f1_history = array.new_float(0)
 var f2_history = array.new_float(0)
 var f3_history = array.new_float(0)
+var f4_history = array.new_float(0)
+var f5_history = array.new_float(0)
+var f6_history = array.new_float(0)
+var f7_history = array.new_float(0)
+var f8_history = array.new_float(0)
 var f1_lag_history = array.new_float(0)
 var f2_lag_history = array.new_float(0)
 var f3_lag_history = array.new_float(0)
+var f4_lag_history = array.new_float(0)
+var f5_lag_history = array.new_float(0)
+var f6_lag_history = array.new_float(0)
+var f7_lag_history = array.new_float(0)
+var f8_lag_history = array.new_float(0)
 var train_labels = array.new_float(0) 
 
 // Build training dataset: Store historical features and their outcomes
@@ -236,9 +265,19 @@ if bar_index >= prediction_window + 1
     array.push(f1_history, f1[prediction_window])       // MFI from 4 bars ago
     array.push(f2_history, f2[prediction_window])       // ROC from 4 bars ago
     array.push(f3_history, f3[prediction_window])       // ATR from 4 bars ago
+    array.push(f4_history, f4[prediction_window])       // RSI from 4 bars ago
+    array.push(f5_history, f5[prediction_window])       // %B from 4 bars ago
+    array.push(f6_history, f6[prediction_window])       // MA200 from 4 bars ago
+    array.push(f7_history, f7[prediction_window])       // VolRatio from 4 bars ago
+    array.push(f8_history, f8[prediction_window])       // ReturnStd from 4 bars ago
     array.push(f1_lag_history, f1[prediction_window + 1])  // MFI from 5 bars ago (lag)
     array.push(f2_lag_history, f2[prediction_window + 1])  // ROC from 5 bars ago (lag)
     array.push(f3_lag_history, f3[prediction_window + 1])  // ATR from 5 bars ago (lag)
+    array.push(f4_lag_history, f4[prediction_window + 1])  // RSI from 5 bars ago (lag)
+    array.push(f5_lag_history, f5[prediction_window + 1])  // %B from 5 bars ago (lag)
+    array.push(f6_lag_history, f6[prediction_window + 1])  // MA200 from 5 bars ago (lag)
+    array.push(f7_lag_history, f7[prediction_window + 1])  // VolRatio from 5 bars ago (lag)
+    array.push(f8_lag_history, f8[prediction_window + 1])  // ReturnStd from 5 bars ago (lag)
     // Label: Did price go UP in the 4 bars following these conditions?
     is_bullish_outcome = close > close[prediction_window]
     array.push(train_labels, is_bullish_outcome ? 1.0 : 0.0)
@@ -246,12 +285,22 @@ if bar_index >= prediction_window + 1
 // Circular buffer: Keep only the last N bars of history to prevent memory bloat
 // Older patterns are discarded to focus on recent regime conditions
 if array.size(f1_history) > knn_history
-    array.shift(f1_history)       // Remove oldest entry
+    array.shift(f1_history)
     array.shift(f2_history)
     array.shift(f3_history)
+    array.shift(f4_history)
+    array.shift(f5_history)
+    array.shift(f6_history)
+    array.shift(f7_history)
+    array.shift(f8_history)
     array.shift(f1_lag_history)
     array.shift(f2_lag_history)
     array.shift(f3_lag_history)
+    array.shift(f4_lag_history)
+    array.shift(f5_lag_history)
+    array.shift(f6_lag_history)
+    array.shift(f7_lag_history)
+    array.shift(f8_lag_history)
     array.shift(train_labels)
 
 var predictions = array.new_float(0)
@@ -263,7 +312,7 @@ array.clear(distances)
 if array.size(train_labels) >= knn_neighbors
     for i = 0 to array.size(train_labels) - 1
         // Calculate distance between current features and historical bar i
-        d = get_lorentzian_distance(f1, f2, f3, f1[1], f2[1], f3[1], i, f1_history, f2_history, f3_history, f1_lag_history, f2_lag_history, f3_lag_history)
+        d = get_lorentzian_distance(f1, f2, f3, f4, f5, f6, f7, f8, f1[1], f2[1], f3[1], f4_lag, f5_lag, f6_lag, f7_lag, f8_lag, i, f1_history, f2_history, f3_history, f4_history, f5_history, f6_history, f7_history, f8_history, f1_lag_history, f2_lag_history, f3_lag_history, f4_lag_history, f5_lag_history, f6_lag_history, f7_lag_history, f8_lag_history)
         
         if array.size(distances) < knn_neighbors
             // Build initial K neighbors list
@@ -281,10 +330,17 @@ if array.size(train_labels) >= knn_neighbors
                 array.set(distances, max_idx, d)
                 array.set(predictions, max_idx, array.get(train_labels, i))
 
-// Majority voting: What % of K nearest neighbors predict bullish?
-float prediction_sum = array.sum(predictions)
+// Weighted KNN voting: Inverse-distance weighting (closer neighbors = higher influence)
+// Instead of simple majority, each neighbor's vote is weighted by 1/(1+distance)
+float weight_sum = 0.0
+float weighted_vote = 0.0
 int neighbors_found = array.size(predictions)
-prob = neighbors_found > 0 ? (prediction_sum / neighbors_found) * 100.0 : 0.0
+for k = 0 to neighbors_found - 1
+    float w = 1.0 / (1.0 + array.get(distances, k))
+    weight_sum += w
+    if array.get(predictions, k) > 0.5
+        weighted_vote += w
+prob = weight_sum > 0 ? (weighted_vote / weight_sum) * 100.0 : 0.0
 // is_ml_bottom: Probability >= threshold means "market bottom pattern detected"
 is_ml_bottom = prob >= knn_prob_thresh
 

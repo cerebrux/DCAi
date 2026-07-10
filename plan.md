@@ -4,77 +4,107 @@
 
 ---
 
-## Φάση 1: Feature Engineering — 6 νέα features + Weighted KNN
+## Γιατί κάναμε αυτές τις αλλαγές;
 
-### 1.1 Νέα Features για KNN (γραμμές ~208-210)
+Φαντάσου ότι είσαι γιατρός που προσπαθεί να διαγνώσει αν ένας ασθενής (η αγορά) είναι άρρωστος (έχει bottom).  
+Αν κοιτάς μόνο ένα σύμπτωμα (π.χ. πυρετό / MFI), μπορεί να κάνεις λάθος.  
+Αν κοιτάς **πολλά συμπτώματα μαζί** (πυρετό + πίεση + καρδιακό παλμό + ...), η διάγνωση είναι πολύ πιο αξιόπιστη.
 
-| # | Feature | Συνάρτηση | Στόχος |
-|---|---|---|---|
-| **F4** | RSI(14) percentile rank | `ta.percentrank(ta.rsi(close, 14), 100)` | Ανεξάρτητη επιβεβαίωση oversold |
-| **F5** | Bollinger %B | `(close - ta.sma(close, 20)) / (2 * ta.stdev(close, 20))` σε percentile | Πόσο "τεντωμένη" είναι η τιμή |
-| **F6** | Απόσταση από 200-period MA | `(close - ta.sma(close, 200)) / ta.sma(close, 200)` σε percentile | Macro context για μεγάλα bottoms |
-| **F7** | Volume Ratio | `volume / ta.sma(volume, 50)` σε percentile | Volume spike = capitulation |
-| **F8** | Rolling 5-bar return std | `ta.stdev(close/close[1] - 1, 5)` σε percentile | Regime detection (ηρεμία/πανικός) |
-| **F9** | Lagged versions (F4-F8, 1 bar lag) | Ίδια λογική με f1_lag..f3_lag | Momentum context |
-
-**Αλλαγές:**
-- `get_lorentzian_distance()`: επέκταση παραμέτρων για 9 features + 9 lagged = 18 distances αντί για 6
-- `f1_history..f3_lag_history`: επέκταση σε `f1_history..f9_lag_history` (18 arrays)
-- `train_labels`: ίδια λογική, αμετάβλητο
-
-### 1.2 Weighted KNN Voting (γραμμές ~284-287)
-
-**Αντί για** απλή πλειοψηφία:
-```pine
-prob = neighbors_found > 0 ? (prediction_sum / neighbors_found) * 100.0 : 0.0
-```
-
-**Θα γίνει** inverse-distance weighting:
-```pine
-float weight_sum = 0.0
-float weighted_vote = 0.0
-for k = 0 to neighbors_found - 1
-    float w = 1.0 / (1.0 + array.get(distances, k))
-    weight_sum += w
-    if array.get(predictions, k) > 0.5
-        weighted_vote += w
-prob = weight_sum > 0 ? (weighted_vote / weight_sum) * 100.0 : 0.0
-```
+Αυτό ακριβώς κάναμε: δώσαμε στο DCAi περισσότερα "μάτια" να βλέπει την αγορά.
 
 ---
 
-## Φάση 2: KNN Optimization
+## Αλλαγή 1: Περισσότερα χαρακτηριστικά (Features) για το KNN
 
-### 2.1 Adaptive Probability Threshold (γραμμή ~201-202)
+### Τι κάναμε
+Προσθέσαμε 5 νέους δείκτες (features) που το μηχάνημα μάθησης (KNN) χρησιμοποιεί για να αναγνωρίζει bottoms:
 
-Αντί για στατικό `knn_prob_thresh`:
-- Νέο array `prediction_hits` (σωστό/λάθος prediction την τελευταία N περίοδο)
-- `rolling_accuracy = ta.sma(array.avg(prediction_hits), 50)`
-- `effective_thresh = 50 + rolling_accuracy * 20` (clamped 55-85)
+| Feature | Τι μετράει | Απλά λόγια |
+|---|---|---|
+| **F4 — RSI (14)** | Είμαστε σε oversold; | Επιβεβαιώνει αυτό που λέει το MFI, σαν δεύτερη γνώμη |
+| **F5 — Bollinger %B** | Πόσο "τεντωμένη" είναι η τιμή από τον μέσο όρο της; | Όταν η τιμή είναι πολύ μακριά από τον μέσο όρο, συνήθως γυρίζει πίσω (mean reversion) |
+| **F6 — Απόσταση από 200άρια ΜΑ** | Είμαστε κοντά σε ιστορικά χαμηλά σε βάθος μηνών; | Τα μεγάλα bottoms συμβαίνουν μακριά από τον 200άρη μέσο όρο |
+| **F7 — Όγκος Συναλλαγών (Volume Ratio)** | Ο κόσμος πουλάει με πανικό ή είναι ήρεμος; | Όταν ο όγκος εκτοξεύεται σε πτώση = capitulation = συχνά bottom |
+| **F8 — Μεταβλητότητα (Return Std)** | Η αγορά είναι ταραγμένη ή ήρεμη; | Η ηρεμία μετά από καταιγίδα συχνά σηματοδοτεί bottom |
 
-### 2.2 Sigmoid Confidence Calibration (γραμμές ~406-408)
+### Γιατί το κάναμε
+> **Πριν:** Το KNN κοίταγε μόνο 3 πράγματα (MFI, ROC, ATR) — σαν γιατρός που κοιτάει μόνο θερμοκρασία.  
+> **Τώρα:** Κοιτάει 8 διαφορετικές μετρήσεις. Όσο περισσότερες συμφωνούν, τόσο πιο σίγουρο είμαστε ότι βρήκαμε bottom.
 
-Αντί για `math.pow((prob - 50.0) / 50.0, 0.5)`:
-```pine
-ml_pot_factor = prob > 50 ? 1.0 / (1.0 + math.exp(-0.08 * (prob - 65))) : 0.0
-```
-
-### 2.3 Walk-Forward Validation Tracker (γραμμές ~579-591)
-
-- Νέος πίνακας `ml_prediction_log` (predicted prob, actual outcome)
-- Νέο dashboard metric: **"ML Accuracy"** — % των predictions που επαληθεύτηκαν στο prediction_window
-- Χρώμα: πράσινο αν > 60%, πορτοκαλί 40-60%, κόκκινο < 40%
+**Αναλογία:** Σαν να έχεις 8 φίλους να κοιτάνε μια ζωγραφιά και να ψηφίζουν αν είναι όμορφη. Αν συμφωνούν και οι 8, είσαι πιο σίγουρος από το αν ρωτάς μόνο 2.
 
 ---
 
-## Φάση 3: Decision Engine Refinements
+## Αλλαγή 2: Weighted KNN Voting (Σταθμισμένη Ψηφοφορία)
 
-### 3.1 Volume-Weighted Adaptive MFI Threshold (γραμμές ~327-336)
+### Τι κάναμε
+Αντί να μετράμε κάθε γείτονα το ίδιο ("1 ψήφος ο καθένας"), τώρα όσοι γείτονες μοιάζουν **περισσότερο** με τη σημερινή κατάσταση έχουν **μεγαλύτερη ψήφο**.
 
-Αντί για στατικό `mfi_strong_lvl = 35`:
-- Υπολογισμός median MFI τελευταίων 200 μπαρ
-- `adaptive_mfi_strong = ta.percentile_linear_interpolation(mf, 50, 200) * 0.5 + 15`
-- Χρήση μόνο όταν `volume` > ta.sma(volume, 50) * 1.2 (volume confirmation)
+### Γιατί το κάναμε
+> **Πριν:** Αν βρίσκαμε 5 παρόμοιες στιγμές στην ιστορία, όλες μετρούσαν ίδια — ακόμα κι αν η μία ήταν σχεδόν ίδια και η άλλη απλά "έτσι κι έτσι".  
+> **Τώρα:** Οι πιο κοντινές ιστορικές στιγμές έχουν μεγαλύτερη βαρύτητα.
+
+**Αναλογία:** Σαν να ζητάς συμβουλή από 5 φίλους. Αυτός που σε ξέρει καλύτερα να έχει μεγαλύτερο βάρος στη γνώμη του.
+
+---
+
+## Αλλαγή 3: Adaptive Probability Threshold (Προσαρμοστικό Όριο Εμπιστοσύνης)
+
+### Τι κάναμε
+Το όριο για να πούμε "αυτό είναι bottom" δεν είναι πια σταθερό (70%). Αλλάζει ανάλογα με το πόσο ακριβής ήταν το μοντέλο μας **τον τελευταίο καιρό**.
+
+- Αν το μοντέλο είχε 90% επιτυχία → ανεβάζουμε τον πήχη στο 78% (γινόμαστε πιο απαιτητικοί)
+- Αν το μοντέλο είχε 50% επιτυχία → κατεβάζουμε τον πήχη στο 55% (γινόμαστε πιο ευέλικτοι)
+
+### Γιατί το κάναμε
+> **Πριν:** Το όριο ήταν πάντα 70%, είτε η αγορά ήταν ήρεμη είτε χαοτική.  
+> **Τώρα:** Το σύστημα αυτοδιορθώνεται. Όταν τα πάει καλά, γίνεται πιο αυστηρό. Όταν δυσκολεύεται, γίνεται πιο ευέλικτο.
+
+**Αναλογία:** Σαν ένας δάσκαλος που βάζει πιο δύσκολο διαγώνισμα όταν οι μαθητές τα πάνε καλά, και πιο εύκολο όταν δυσκολεύονται.
+
+---
+
+## Αλλαγή 4: Sigmoid Confidence Calibration (Καμπύλη Εμπιστοσύνης)
+
+### Τι κάναμε
+Αλλάξαμε τον τύπο που υπολογίζει πόσα χρήματα θα επενδύσουμε με βάση την εμπιστοσύνη του μοντέλου.
+
+### Γιατί το κάναμε
+> **Πριν:** Η καμπύλη ήταν απότομη — στο 70% είχε μια τιμή, στο 80% άλλη, χωρίς ομαλή μετάβαση.  
+> **Τώρα:** Χρησιμοποιούμε sigmoid (καμπύλη S) που είναι πιο ομαλή:
+> - 50-60%: σχεδόν τίποτα (χαμηλή εμπιστοσύνη)
+> - 65%: μισή δύναμη (μεσαία εμπιστοσύνη)
+> - 80%+: σχεδόν πλήρης δύναμη (υψηλή εμπιστοσύνη)
+
+**Αναλογία:** Σαν το γκάζι ενός αυτοκινήτου — δεν πατάς απότομα 100% ή 0%, αλλά ανεβάζεις ομαλά ανάλογα με την ανάγκη.
+
+---
+
+## Αλλαγή 5: Walk-Forward Validation (Έλεγχος Ακρίβειας Πρόβλεψης)
+
+### Τι κάναμε
+Προσθέσαμε ένα σύστημα που **παρακολουθεί κάθε πρόβλεψη** που κάνει το μοντέλο και μετά από 4 μέρες ελέγχει αν βγήκε αληθινή.
+
+Αποθηκεύει όλες τις σωστές και λάθος προβλέψεις και υπολογίζει **ML Accuracy** (ποσοστό επιτυχίας) — το βλέπεις στο dashboard.
+
+### Γιατί το κάναμε
+> **Πριν:** Δεν είχαμε ιδέα πόσο ακριβές ήταν το μοντέλο — βλέπαμε μόνο σήματα αλλά όχι αν επαληθεύτηκαν.  
+> **Τώρα:** Βλέπεις στο dashboard "ML Accuracy: 72% (30 δείγματα)". Ξέρεις ακριβώς πόσο να εμπιστεύεσαι το σύστημα.
+
+**Αναλογία:** Σαν να κρατάς στατιστικά του παίκτη σε μια ομάδα — αν έχει 80% ευστοχία, του δίνεις την μπάλα. Αν έχει 40%, σκέφτεσαι αν θα του την δώσεις.
+
+---
+
+## Αλλαγή 6: Volume-Weighted Adaptive MFI Threshold
+
+### Τι κάναμε
+Το MFI threshold (το όριο oversold) δεν είναι πια σταθερό. Όταν ο όγκος συναλλαγών είναι μεγάλος (ο κόσμος πουλάει μαζικά), χαλαρώνουμε το όριο για να πιάσουμε νωρίτερα το bottom.
+
+### Γιατί το κάναμε
+> **Πριν:** Το MFI=35 ήταν oversold είτε ο όγκος ήταν τεράστιος είτε μηδαμινός.  
+> **Τώρα:** Αν βλέπουμε πανικό (υψηλό όγκο), ρίχνουμε το όριο για να μπούμε νωρίτερα.
+
+**Αναλογία:** Σαν να λες "αν δω πολύ κόσμο να τρέχει προς την έξοδο, μάλλον κάτι συμβαίνει — δεν περιμένω να δω φωτιά, κινιέμαι πιο γρήγορα".
 
 ---
 
@@ -86,61 +116,22 @@ ml_pot_factor = prob > 50 ? 1.0 / (1.0 + math.exp(-0.08 * (prob - 65))) : 0.0
 | `4ca22c1` | `feat: add 5 new KNN features (F4-F9) and weighted KNN voting` |
 | `231f9e6` | `feat: adaptive threshold, sigmoid calibration, walk-forward validation` |
 | `be08a3b` | `feat: volume-weighted adaptive MFI threshold` |
+| `d4ba263` | `fix: reorder code to resolve forward reference` |
+| `c11417e` | `fix: guard weighted KNN voting against empty predictions array` |
 
 ---
 
-## Υλοποιημένες Αλλαγές — Ανασκόπηση
+## No Repainting Guarantee
 
-### Phase 1: Feature Engineering + Weighted KNN ✅
-
-| # | Αλλαγή | Τοποθεσία (γραμμές) |
-|---|---|---|
-| 1.1 | **F4: RSI(14) percentile** — oversold confirmation | ~211 |
-| 1.2 | **F5: Bollinger %B percentile** — price stretch from mean | ~212-213 |
-| 1.3 | **F6: MA200 distance percentile** — macro context for bottoms | ~214-215 |
-| 1.4 | **F7: Volume ratio percentile** — capitulation volume spikes | ~216 |
-| 1.5 | **F8: Return std percentile** — volatility regime detection | ~217 |
-| 1.6 | **F4_lag..F8_lag** — lagged features for momentum context | ~219 |
-| 1.7 | **Lorentzian distance expanded** — 8 current + 8 lagged = 16 log-distances | ~226-242 |
-| 1.8 | **History arrays ×8** — f1..f8_history + f1..f8_lag_history | ~244-259 |
-| 1.9 | **Training data push ×16** — all features + lagged stored per bar | ~264-280 |
-| 1.10 | **Circular buffer shift ×16** — all arrays trimmed at knn_history | ~287-304 |
-| 1.11 | **Weighted KNN** — `1/(1+distance)` weighting instead of simple majority | ~333-343 |
-
-### Phase 2: KNN Optimization ✅
-
-| # | Αλλαγή | Τοποθεσία (γραμμές) |
-|---|---|---|
-| 2.1 | **Walk-forward validation** — prediction_log_bar + prediction_log_prob + prediction_hits arrays | ~358-391 |
-| 2.2 | **Rolling accuracy** — `array.avg(prediction_hits)` over last 100, min 10 samples | ~382-383 |
-| 2.3 | **Adaptive threshold** — `50 + (accuracy - 0.5) * 70`, clamped 55-85 | ~384-386 |
-| 2.4 | **Sigmoid calibration** — `1/(1+e^(-0.08*(prob-65)))` for ml_pot_factor | ~519-520 |
-| 2.5 | **Dashboard: ML Accuracy row** — rolling accuracy % + sample count | ~705-713 |
-
-### Phase 3: Decision Engine ✅
-
-| # | Αλλαγή | Τοποθεσία (γραμμές) |
-|---|---|---|
-| 3.1 | **Volume-weighted MFI** — vol_ratio > 1.2 → +5 threshold relaxation | ~417-434 |
+**Καμία αλλαγή δεν "ξαναζωγραφίζει" παλιά σήματα.**  
+Δεν πειράζουμε το παρελθόν — όλες οι προβλέψεις γίνονται με δεδομένα που ήταν διαθέσιμα ΕΚΕΙΝΗ τη στιγμή.
 
 ---
 
-## No Repainting Guarantee (Verified)
+## Μετρικές Επιτυχίας (Τι να κοιτάς στο backtest)
 
-| Αλλαγή | Status |
-|---|---|
-| Όλα τα νέα features (`ta.rsi`, `ta.sma`, `ta.stdev`) | ✅ Built-in συναρτήσεις χωρίς look-ahead |
-| Weighted KNN over existing neighbors | ✅ Μόνο math, no repaint |
-| Adaptive threshold από rolling_accuracy | ✅ Verification γίνεται μόνο αφού κλείσει το prediction_window |
-| Sigmoid calibration | ✅ Καθαρό math πάνω στο prob |
-| Walk-forward arrays | ✅ Store/verify με `barstate.isconfirmed` + `bar_index` check |
-| Volume-weighted MFI | ✅ Standard ta.sma, no repaint |
-
----
-
-## Μετρικές Επιτυχίας (Προς Επιβεβαίωση με Backtest)
-
-- **ML Hit Rate > 65%** (ποσοστό predictions που επαληθεύονται στο prediction_window)
-- **DCAi Avg Entry** < Blind DCA Avg Entry (βελτίωση entry price)
-- **Sortino Ratio** DCAi > Blind DCA
-- **Adaptive threshold range**: 55-85% (παρακολούθηση στο dashboard)
+1. **ML Accuracy > 65%** — οι προβλέψεις του μοντέλου επαληθεύονται
+2. **DCAi Avg Entry < Blind DCA** — μπαίνουμε σε καλύτερη τιμή από το απλό DCA
+3. **Sortino Ratio** καλύτερο — καλύτερη απόδοση για τον κίνδυνο που παίρνουμε
+4. **Max Pain (Max Drawdown)** μικρότερο — λιγότερο "πόνο" στο πορτοφόλι
+5. **Adaptive threshold range** — βλέπεις στο dashboard πού κυμαίνεται (55-85%)

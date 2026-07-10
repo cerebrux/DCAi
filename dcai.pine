@@ -692,7 +692,6 @@ if barstate.islast and show_dash
 
     // Walk-Forward ML Accuracy
     float ml_acc_pct = rolling_accuracy * 100
-    string acc_status = ml_acc_pct >= 70 ? "✓ High" : (ml_acc_pct >= 55 ? "~ Med" : "✖ Low")
     color acc_col = ml_acc_pct >= 70 ? color.lime : (ml_acc_pct >= 55 ? color.orange : color.red)
     table.cell(dash, 0, r, "ML Accuracy", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)

@@ -341,8 +341,9 @@ for k = 0 to neighbors_found - 1
     if array.get(predictions, k) > 0.5
         weighted_vote += w
 prob = weight_sum > 0 ? (weighted_vote / weight_sum) * 100.0 : 0.0
-// is_ml_bottom: Probability >= threshold means "market bottom pattern detected"
-is_ml_bottom = prob >= knn_prob_thresh
+// is_ml_bottom: Probability >= adaptive threshold means "market bottom pattern detected"
+// Threshold adjusts automatically based on recent prediction accuracy
+is_ml_bottom = prob >= effective_prob_thresh
 
 // Track distance to closest bullish neighbor (used for confidence boost)
 // Closer match = higher confidence in the buy signal
@@ -354,6 +355,40 @@ if neighbors_found > 0
             float d_val = array.get(distances, k)
             if d_val < min_bull_dist
                 min_bull_dist := d_val  // Store distance to closest bullish pattern
+
+// --- WALK-FORWARD VALIDATION ---
+// Track prediction accuracy over time and adapt threshold dynamically
+var prediction_log_bar = array.new_int(0)
+var prediction_log_prob = array.new_float(0)
+var prediction_hits = array.new_float(0)
+
+// Verify matured predictions (after prediction_window bars have passed)
+int kk = 0
+while kk < array.size(prediction_log_bar)
+    if bar_index - array.get(prediction_log_bar, kk) >= prediction_window
+        float pred_prob = array.get(prediction_log_prob, kk)
+        bool was_bullish = pred_prob >= 50
+        bool actual_bullish = close > close[prediction_window]
+        array.push(prediction_hits, was_bullish == actual_bullish ? 1.0 : 0.0)
+        array.remove(prediction_log_bar, kk)
+        array.remove(prediction_log_prob, kk)
+    else
+        kk += 1
+
+// Keep only last 100 verified predictions
+while array.size(prediction_hits) > 100
+    array.shift(prediction_hits)
+
+// Rolling accuracy over last N predictions (min 10 samples for statistical significance)
+float rolling_accuracy = array.size(prediction_hits) >= 10 ? array.avg(prediction_hits) : 0.5
+// Adaptive threshold: high accuracy = raise bar (selective), low accuracy = lower bar (permissive)
+// accuracy=50% → thresh=55, accuracy=70% → thresh=64, accuracy=90% → thresh=78, accuracy=100% → thresh=85
+float effective_prob_thresh = math.min(85, math.max(55, 50 + (rolling_accuracy - 0.5) * 70))
+
+// Store current prediction for future verification
+if barstate.isconfirmed and is_in_period
+    array.push(prediction_log_bar, bar_index)
+    array.push(prediction_log_prob, prob)
 
 if time >= start_date
     array.push(price_history, close)
@@ -454,14 +489,15 @@ if is_ml_bottom and min_bull_dist < 100.0
 // Keep reserve for true catastrophic dips
 float available_pot = savings_pot * (1.0 - pot_reserve_pct)  // Reserve 20% for emergencies
 
-// Confidence scaling:
-// prob = 50% → pot_factor = 0.0 (no extra pot)
-// prob = 70% → pot_factor = 0.4 (moderate)
-// prob = 90% → pot_factor = 0.8 (aggressive)
-// prob = 100% → pot_factor = 1.0 (maximum)
+// Sigmoid Confidence Scaling: Smoother, more calibrated pot allocation
+// prob = 50% → pot_factor = 0.0  (no extra pot)
+// prob = 65% → pot_factor = 0.5  (moderate)
+// prob = 80% → pot_factor = 0.77 (aggressive)
+// prob = 100% → pot_factor = 0.94 (near-maximum)
+// Sigmoid: 1/(1+e^(-0.08*(prob-65))) centers the curve at 65% confidence
 float ml_pot_factor = 0.0
 if prob > 50
-    ml_pot_factor := math.pow((prob - 50.0) / 50.0, 0.5)  // Aggressive exponential scaling 
+    ml_pot_factor := 1.0 / (1.0 + math.exp(-0.08 * (prob - 65)))
 
 float recommended_amount = 0.0
 float pot_usage_debug = 0.0
@@ -645,6 +681,15 @@ if barstate.islast and show_dash
     table.cell(dash, 0, r, "ML Confidence", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(prob, 1)) + "%", text_color=color.gray)
     table.cell(dash, 2, r, ml_status_txt, text_color=ml_status_col)
+    r += 1
+
+    // Walk-Forward ML Accuracy
+    float ml_acc_pct = rolling_accuracy * 100
+    string acc_status = ml_acc_pct >= 70 ? "✓ High" : (ml_acc_pct >= 55 ? "~ Med" : "✖ Low")
+    color acc_col = ml_acc_pct >= 70 ? color.lime : (ml_acc_pct >= 55 ? color.orange : color.red)
+    table.cell(dash, 0, r, "ML Accuracy", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)
+    table.cell(dash, 2, r, "(" + str.tostring(array.size(prediction_hits)) + ")", text_color=acc_col)
     r += 1
 
     float dist_kijun = ((close - kijun) / kijun) * 100

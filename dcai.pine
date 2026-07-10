@@ -414,15 +414,22 @@ is_cloud_green = lead_span_a > lead_span_b  // Cloud turned bullish?
 is_pullback_zone = is_cloud_green and close <= kijun and close > lead_span_b  // Healthy pullback
 is_mfi_ok = mf >= mfi_target_min and mf <= mfi_target_max  // MFI in target range for this asset
 
-// Dynamic MFI adjustment: CVD divergence = extra confirmation, so we need LESS oversold MFI
+// Dynamic MFI adjustment: CVD divergence + volume confirmation = less panic needed
+// Volume confirms capitulation: when volume spikes 1.2x+ above average, relax thresholds
+float vol_ratio = volume / ta.sma(volume, 50)
+int vol_boost = vol_ratio > 1.2 ? 5 : 0
 var int effective_mfi_strong = mfi_strong_lvl
 var int effective_mfi_max    = mfi_max_lvl
 if is_cvd_div_bull
-    // Bullish divergence = less panic needed, relax thresholds +10 and +5
-    effective_mfi_strong := mfi_strong_lvl + 10 
-    effective_mfi_max    := mfi_max_lvl + 5     
+    // Bullish divergence = strong volume confirmation, relax thresholds further
+    effective_mfi_strong := mfi_strong_lvl + 10 + vol_boost
+    effective_mfi_max    := mfi_max_lvl + 5 + vol_boost
+else if vol_ratio > 1.2
+    // No divergence but volume spike = moderate relaxation
+    effective_mfi_strong := mfi_strong_lvl + vol_boost
+    effective_mfi_max    := mfi_max_lvl + vol_boost
 else
-    // No divergence = stick to strict levels
+    // No confirmation = stick to strict levels
     effective_mfi_strong := mfi_strong_lvl
     effective_mfi_max    := mfi_max_lvl
 

@@ -665,7 +665,8 @@ if barstate.islast and show_dash
     color status_col = n < 10 ? color.gray : (n >= 30 ? color.lime : acc_col)
     table.cell(dash, 0, r, "Track Record", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)
-    table.cell(dash, 2, r, ml_status + " (" + str.tostring(n) + ")", text_color=status_col)
+    string display_status = n >= 30 ? "Learned ✓" : ml_status + " (" + str.tostring(n) + ")"
+    table.cell(dash, 2, r, display_status, text_color=status_col)
     r += 1
 
     float dist_kijun = ((close - kijun) / kijun) * 100

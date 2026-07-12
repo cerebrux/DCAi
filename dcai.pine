@@ -201,7 +201,7 @@ knn_neighbors = input.int(5, "Neighbors Count", minval=1, maxval=100, group=grou
 knn_prob_thresh = input.float(70.0, "Probability Threshold %", minval=50, maxval=100, group=group_ml)
 ml_boost_sens   = input.float(2.0, "ML Confidence Sensitivity", minval=0.1, step=0.1, group=group_ml)
 roc_len_ml = input.int(14, "Feature: ROC Length", group=group_ml)
-int prediction_window = 14  // Bars ahead we're trying to predict (14-bar forward-looking for monthly DCA)
+int prediction_window = 21  // Bars ahead we're trying to predict (21-bar forward-looking for monthly DCA)
 
 // Feature Engineering: Normalize features to percentile rank (0-100)
 // This makes them scale-independent and comparable across different market regimes
@@ -240,17 +240,17 @@ var f8_history = array.new_float(0)
 var train_labels = array.new_float(0) 
 
 // Build training dataset: Store historical features and their outcomes
-// We look back 14 bars to record what happened after these market conditions
+// We look back 21 bars to record what happened after these market conditions
 if bar_index >= prediction_window + 1
-    array.push(f1_history, f1[prediction_window])       // MFI from 14 bars ago
-    array.push(f2_history, f2[prediction_window])       // ROC from 14 bars ago
-    array.push(f3_history, f3[prediction_window])       // ATR from 14 bars ago
-    array.push(f4_history, f4[prediction_window])       // RSI from 14 bars ago
-    array.push(f5_history, f5[prediction_window])       // %B from 14 bars ago
-    array.push(f6_history, f6[prediction_window])       // MA200 from 14 bars ago
-    array.push(f7_history, f7[prediction_window])       // VolRatio from 14 bars ago
-    array.push(f8_history, f8[prediction_window])       // ReturnStd from 14 bars ago
-    // Label: Did price go UP in the 14 bars following these conditions?
+    array.push(f1_history, f1[prediction_window])       // MFI from 21 bars ago
+    array.push(f2_history, f2[prediction_window])       // ROC from 21 bars ago
+    array.push(f3_history, f3[prediction_window])       // ATR from 21 bars ago
+    array.push(f4_history, f4[prediction_window])       // RSI from 21 bars ago
+    array.push(f5_history, f5[prediction_window])       // %B from 21 bars ago
+    array.push(f6_history, f6[prediction_window])       // MA200 from 21 bars ago
+    array.push(f7_history, f7[prediction_window])       // VolRatio from 21 bars ago
+    array.push(f8_history, f8[prediction_window])       // ReturnStd from 21 bars ago
+    // Label: Did price go UP in the 21 bars following these conditions?
     is_bullish_outcome = close > close[prediction_window] * 0.985
     array.push(train_labels, is_bullish_outcome ? 1.0 : 0.0)
 
@@ -329,22 +329,17 @@ while kk < array.size(prediction_log_bar)
         kk += 1
 
 // Keep only last 90 verified predictions
-while array.size(prediction_hits) > 90
+while array.size(prediction_hits) > 30
     array.shift(prediction_hits)
 
-// Rolling accuracy over last N predictions (min 30 samples for statistical significance)
-float rolling_accuracy = array.size(prediction_hits) >= 30 ? array.avg(prediction_hits) : 0.5
+// Rolling accuracy over last N predictions (min 10 samples for statistical significance)
+float rolling_accuracy = array.size(prediction_hits) >= 10 ? array.avg(prediction_hits) : 0.5
 // Adaptive threshold: high accuracy = raise bar (selective), low accuracy = lower bar (permissive)
 // accuracy=50% → thresh=55, accuracy=70% → thresh=64, accuracy=90% → thresh=78, accuracy=100% → thresh=85
 float effective_prob_thresh = math.min(85, math.max(knn_prob_thresh, 50 + (rolling_accuracy - 0.5) * 70))
 
 // is_ml_bottom: Probability >= adaptive threshold means "market bottom pattern detected"
 is_ml_bottom = prob >= effective_prob_thresh
-
-// Store current prediction for future verification
-if barstate.isconfirmed and is_in_period
-    array.push(prediction_log_bar, bar_index)
-    array.push(prediction_log_prob, prob)
 
 // Track distance to closest bullish neighbor (used for confidence boost)
 // Closer match = higher confidence in the buy signal
@@ -546,6 +541,11 @@ if trigger_strong and recommended_amount >= 1
 if trigger_max and recommended_amount >= 1
     label.new(bar_index, low, text="FEAR\n€" + str.tostring(recommended_amount, "#"), color=color.new(#E91E63, 0), textcolor=color.white, style=label.style_label_up, yloc=yloc.belowbar)
 
+// Store prediction for Track Record — only on actual trigger bars (monthly DCA context)
+if barstate.isconfirmed and (trigger_std or trigger_strong or trigger_max)
+    array.push(prediction_log_bar, bar_index)
+    array.push(prediction_log_prob, prob)
+
 if show_pot_debug and pot_usage_debug >= 1
     label.new(bar_index, high, text="POT\n€" + str.tostring(pot_usage_debug, "#"), color=color.new(color.orange, 0), textcolor=color.white, style=label.style_label_down, yloc=yloc.abovebar)
 
@@ -661,8 +661,8 @@ if barstate.islast and show_dash
     float ml_acc_pct = rolling_accuracy * 100
     color acc_col = ml_acc_pct >= 70 ? color.lime : (ml_acc_pct >= 55 ? color.orange : color.red)
     int n = array.size(prediction_hits)
-    string ml_status = n < 30 ? "BOOT" : (n < 60 ? "Learning" : (n < 85 ? "Improving" : "Learned"))
-    color status_col = n < 30 ? color.gray : (n >= 85 ? color.lime : acc_col)
+    string ml_status = n < 10 ? "BOOT" : (n < 20 ? "Learning" : (n < 30 ? "Improving" : "Learned"))
+    color status_col = n < 10 ? color.gray : (n >= 30 ? color.lime : acc_col)
     table.cell(dash, 0, r, "Track Record", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)
     table.cell(dash, 2, r, ml_status + " (" + str.tostring(n) + ")", text_color=status_col)

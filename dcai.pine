@@ -698,7 +698,7 @@ if barstate.islast and show_dash
     color acc_col = ml_acc_pct >= 70 ? color.lime : (ml_acc_pct >= 55 ? color.orange : color.red)
     int n = array.size(prediction_hits)
     string ml_status = n < 30 ? "BOOT" : (n < 60 ? "Learning" : (n < 85 ? "Improving" : "Learned"))
-    color status_col = n < 30 ? color.gray : acc_col
+    color status_col = n < 30 ? color.gray : (n >= 85 ? color.lime : acc_col)
     table.cell(dash, 0, r, "ML Accuracy", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)
     table.cell(dash, 2, r, ml_status + " (" + str.tostring(n) + ")", text_color=status_col)

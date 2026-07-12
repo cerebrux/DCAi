@@ -679,16 +679,16 @@ if barstate.islast and show_dash
     r += 1
     
     // Live Signals
-    string ml_status_txt = "WAIT"
+    string ml_status_txt = "IDLE"
     color ml_status_col = color.orange
     if is_ml_bottom
-        ml_status_txt := "Bottom(?)"
+        ml_status_txt := "ACTIVE"
         ml_status_col := color.lime
     else if prob >= dca_ml_thresh
-        ml_status_txt := "Ready(?)"
+        ml_status_txt := "STANDBY"
         ml_status_col := color.green
 
-    table.cell(dash, 0, r, "ML Confidence", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 0, r, "Signal Prob", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(prob, 1)) + "%", text_color=color.gray)
     table.cell(dash, 2, r, ml_status_txt, text_color=ml_status_col)
     r += 1
@@ -699,7 +699,7 @@ if barstate.islast and show_dash
     int n = array.size(prediction_hits)
     string ml_status = n < 30 ? "BOOT" : (n < 60 ? "Learning" : (n < 85 ? "Improving" : "Learned"))
     color status_col = n < 30 ? color.gray : (n >= 85 ? color.lime : acc_col)
-    table.cell(dash, 0, r, "ML Accuracy", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 0, r, "Track Record", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(ml_acc_pct, 1)) + "%", text_color=color.gray)
     table.cell(dash, 2, r, ml_status + " (" + str.tostring(n) + ")", text_color=status_col)
     r += 1

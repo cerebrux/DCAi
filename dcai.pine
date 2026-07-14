@@ -621,7 +621,7 @@ if monthly_peak > 0
 // Total Capital Committed is tracked by monthly_invested for both strategies.
 float total_budget = monthly_invested 
 
-float smart_portfolio_roi = total_budget > 0 ? (cur_smart_equity - total_budget) / total_budget : 0.0
+float smart_portfolio_roi = smart_invested > 0 ? (cur_smart_equity - smart_invested) / smart_invested : 0.0
 float smart_profit_risk = smart_max_dd > 0 ? smart_portfolio_roi / smart_max_dd : 0.0  
 
 float monthly_portfolio_roi = total_budget > 0 ? (cur_monthly_equity - total_budget) / total_budget : 0.0

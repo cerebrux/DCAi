@@ -298,27 +298,37 @@ var distances = array.new_float(0)
 array.clear(predictions)
 array.clear(distances)
 
+// ANN Chronological Spacing: skip every 4th bar to prevent clustering
+// and override skipped bars with lastDistance for chronological diversity
+var float last_distance = 0.0
+
 // KNN Classification: Find K closest historical patterns and vote on bullish/bearish
 if array.size(train_labels) >= knn_neighbors
     for i = 0 to array.size(train_labels) - 1
-        // Calculate distance between current features and historical bar i
-        d = get_lorentzian_distance(f1, f2, f3, f4, f5, f6, f7, f8, i, f1_history, f2_history, f3_history, f4_history, f5_history, f6_history, f7_history, f8_history)
+        // Chronological spacing: skip every 4th bar, use lastDistance instead
+        float d = 0.0
+        if i % 4 != 0
+            d := get_lorentzian_distance(f1, f2, f3, f4, f5, f6, f7, f8, i, f1_history, f2_history, f3_history, f4_history, f5_history, f6_history, f7_history, f8_history)
+            last_distance := d
+        else if last_distance > 0
+            d := last_distance
         
-        if array.size(distances) < knn_neighbors
-            // Build initial K neighbors list
-            array.push(distances, d)
-            array.push(predictions, array.get(train_labels, i))
-        else
-            // Keep only K nearest: replace furthest neighbor if current is closer
-            float max_d = -1.0
-            int max_idx = -1
-            for k = 0 to knn_neighbors - 1
-                if array.get(distances, k) > max_d
-                    max_d := array.get(distances, k)
-                    max_idx := k
-            if d < max_d  // New pattern is closer than furthest in top-K
-                array.set(distances, max_idx, d)
-                array.set(predictions, max_idx, array.get(train_labels, i))
+        if d > 0
+            if array.size(distances) < knn_neighbors
+                // Build initial K neighbors list
+                array.push(distances, d)
+                array.push(predictions, array.get(train_labels, i))
+            else
+                // Keep only K nearest: replace furthest neighbor if current is closer
+                float max_d = -1.0
+                int max_idx = -1
+                for k = 0 to knn_neighbors - 1
+                    if array.get(distances, k) > max_d
+                        max_d := array.get(distances, k)
+                        max_idx := k
+                if d < max_d  // New pattern is closer than furthest in top-K
+                    array.set(distances, max_idx, d)
+                    array.set(predictions, max_idx, array.get(train_labels, i))
 
 // Weighted KNN voting: Inverse-distance weighting (closer neighbors = higher influence)
 // Instead of simple majority, each neighbor's vote is weighted by 1/(1+distance)
@@ -366,6 +376,15 @@ float effective_prob_thresh = math.min(85, math.max(knn_prob_thresh, 50 + (rolli
 
 // is_ml_bottom: Probability >= adaptive threshold means "market bottom pattern detected"
 is_ml_bottom = prob >= effective_prob_thresh
+
+// Early Signal Flip Detection: Track when ML signal changes direction
+// If signal flipped within last 4 bars, market is choppy — reduce confidence
+var bool prev_ml_signal = false
+var int last_signal_flip_bar = -100
+bool signal_flipped = (is_ml_bottom != prev_ml_signal) and (bar_index - last_signal_flip_bar <= 4)
+if is_ml_bottom != prev_ml_signal
+    last_signal_flip_bar := bar_index
+    prev_ml_signal := is_ml_bottom
 
 // Track distance to closest bullish neighbor (used for confidence boost)
 // Closer match = higher confidence in the buy signal
@@ -448,7 +467,7 @@ if already_pullback_bought
 bool kernel_buy_ok = not use_kernel_filter or kernel_bull or close > ma200
 
 // Base strong condition: All core signals aligned (ML, MFI, CVD, cooldown respected)
-bool base_strong_condition = is_ml_bottom and is_strong_zone and is_cvd_bullish and (bar_index - last_strong_buy_bar > sb_cooldown)
+bool base_strong_condition = is_ml_bottom and is_strong_zone and is_cvd_bullish and not signal_flipped and (bar_index - last_strong_buy_bar > sb_cooldown)
 
 // TIER 1 & 2: FEAR/OVERSOLD (Strong signals) - Block each other, but NOT blocked by PULLBACK if pot exists
 if base_strong_condition and kernel_buy_ok and is_in_period and not already_strong_bought and strong_signal_allowed
@@ -662,7 +681,7 @@ float monthly_avg_entry = monthly_units > 0 ? monthly_invested / monthly_units :
 // ==========================================
 // 9. DASHBOARD
 // ==========================================
-var table dash = show_dash ? table.new(position.middle_right, 3, 17, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1) : na
+var table dash = show_dash ? table.new(position.middle_right, 3, 18, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1) : na
 
 if barstate.islast and show_dash
     int r = 0
@@ -721,6 +740,15 @@ if barstate.islast and show_dash
     table.cell(dash, 0, r, "Kernel", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, use_kernel_filter ? str.tostring(math.round(kernel_smooth, 2)) : "OFF", text_color=color.gray)
     table.cell(dash, 2, r, use_kernel_filter ? kernel_status_txt : "DISABLED", text_color=use_kernel_filter ? kernel_status_col : color.gray)
+    r += 1
+
+    // Signal Stability
+    int bars_since_flip = bar_index - last_signal_flip_bar
+    string flip_status_txt = bars_since_flip <= 4 ? "FLIP (" + str.tostring(bars_since_flip) + " bars)" : "STABLE"
+    color flip_status_col = bars_since_flip <= 4 ? color.orange : color.lime
+    table.cell(dash, 0, r, "Signal Stability", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, str.tostring(bars_since_flip) + " bars", text_color=color.gray)
+    table.cell(dash, 2, r, flip_status_txt, text_color=flip_status_col)
     r += 1
 
     // Savings & Budget

@@ -74,6 +74,9 @@ var float smart_units = 0.0
 // --- PORTFOLIO TRACKING (Monthly Passive) ---
 var float monthly_invested = 0.0
 var float monthly_units = 0.0
+// --- FIRST INVESTMENT TIME (For Annualized Returns) ---
+var int smart_first_bar = na
+var int monthly_first_bar = na
 
 // --- PERFORMANCE ARRAYS (For Sortino) ---
 // Track daily returns to calculate Sortino ratio (downside risk only)
@@ -107,6 +110,8 @@ if is_new_month
     if is_in_period and barstate.isconfirmed
         monthly_invested += base_budget
         monthly_units += base_budget / close
+        if na(monthly_first_bar)
+            monthly_first_bar := bar_index
 
 // --- TRACK RETURNS FOR SORTINO ---
 // Moved to Section 8 for better accuracy (Time-Weighted Returns)
@@ -575,12 +580,15 @@ if recommended_amount > 0
 if recommended_amount > 0
     smart_invested += recommended_amount
     smart_units += recommended_amount / close
+    if na(smart_first_bar)
+        smart_first_bar := bar_index
 
 // ==========================================
 // 7. VISUALS (Labels & UI)
 // ==========================================
 group_vis = "7. Visuals & UI"
 show_dash = input.bool(true, "Show Performance Dashboard", group=group_vis)
+show_avg_line = input.bool(true, "Show Avg Entry Line", group=group_vis)
 
 if trigger_std and recommended_amount >= 1
     label.new(bar_index, low, text="PULLBACK\n€" + str.tostring(recommended_amount, "#"), color=color.green, textcolor=color.white, style=label.style_label_up, yloc=yloc.belowbar)
@@ -678,10 +686,26 @@ float monthly_profit_risk = monthly_max_dd > 0 ? monthly_portfolio_roi / monthly
 float smart_avg_entry = smart_units > 0 ? smart_invested / smart_units : 0.0
 float monthly_avg_entry = monthly_units > 0 ? monthly_invested / monthly_units : 0.0
 
+// Avg Entry Step Line: Shows the average cost basis of the DCAi strategy
+plot(show_avg_line and smart_avg_entry > 0 ? smart_avg_entry : na, "Avg Entry", color=color.new(color.gray, 40), style=plot.style_stepline, linewidth=2)
+
+// Annualized Realised Returns: What if we sold everything today?
+// Formula: ((total_value / total_invested) ^ (365 / days_held)) - 1
+float smart_ann_return = 0.0
+float monthly_ann_return = 0.0
+if not na(smart_first_bar) and smart_invested > 0
+    int smart_days = bar_index - smart_first_bar
+    if smart_days > 0
+        smart_ann_return := math.pow(cur_smart_equity / smart_invested, 365.0 / smart_days) - 1.0
+if not na(monthly_first_bar) and monthly_invested > 0
+    int monthly_days = bar_index - monthly_first_bar
+    if monthly_days > 0
+        monthly_ann_return := math.pow(cur_monthly_equity / monthly_invested, 365.0 / monthly_days) - 1.0
+
 // ==========================================
 // 9. DASHBOARD
 // ==========================================
-var table dash = show_dash ? table.new(position.middle_right, 3, 18, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1) : na
+var table dash = show_dash ? table.new(position.middle_right, 3, 19, bgcolor=color.new(color.black, 15), frame_color=color.gray, frame_width=1) : na
 
 if barstate.islast and show_dash
     int r = 0
@@ -785,6 +809,12 @@ if barstate.islast and show_dash
     table.cell(dash, 0, r, "Total ROI", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(smart_portfolio_roi * 100, "#.##") + "%", text_color=smart_portfolio_roi >= 0 ? color.lime : color.red)
     table.cell(dash, 2, r, str.tostring(monthly_portfolio_roi * 100, "#.##") + "%", text_color=monthly_portfolio_roi >= 0 ? color.gray : color.red)
+    r += 1
+
+    // Annual Realised Return (if sold everything today)
+    table.cell(dash, 0, r, "Ann. Return", text_halign=text.align_left, text_color=color.white)
+    table.cell(dash, 1, r, not na(smart_first_bar) ? str.tostring(smart_ann_return * 100, "#.##") + "%" : "-", text_color=smart_ann_return >= 0 ? color.lime : color.red)
+    table.cell(dash, 2, r, not na(monthly_first_bar) ? str.tostring(monthly_ann_return * 100, "#.##") + "%" : "-", text_color=monthly_ann_return >= 0 ? color.gray : color.red)
     r += 1
 
     // Avg Entry Price

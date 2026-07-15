@@ -197,28 +197,7 @@ is_cvd_bullish = is_cvd_div_bull or is_cvd_trend_up  // Either divergence OR tre
 
 // ==========================================
 // 4b. KERNEL REGRESSION (Nadaraya-Watson)
-// ==========================================
-// Rational Quadratic Kernel: Smoothed trend line that detects price extremes
-// When kernel crosses above close = price is below trend (oversold / bottom)
-// When kernel crosses below close = price is above trend (overbought / top)
-group_kernel = "4b. Kernel Regression"
-use_kernel_filter = input.bool(true, "Use Kernel Filter", group=group_kernel, tooltip="Adds kernel crossover confirmation to buy signals")
-kernel_lookback   = input.int(8, "Kernel Lookback", minval=2, maxval=50, group=group_kernel)
-kernel_rw         = input.float(8.5, "Kernel Relative Weight", minval=1.0, maxval=20.0, step=0.5, group=group_kernel, tooltip="Higher = smoother curve")
 
-// Nadaraya-Watson Rational Quadratic Kernel (manual implementation for v6)
-kernel(source, lookback, rw) =>
-    float sum = 0.0
-    float weight_sum = 0.0
-    for i = 0 to lookback - 1
-        float w = math.pow(1 + (math.pow(i, 2) / ((lookback * lookback) * 2 * math.pow(rw, 2))), -rw)
-        sum += source[i] * w
-        weight_sum += w
-    sum / weight_sum
-
-kernel_smooth = kernel(close, kernel_lookback, kernel_rw)
-kernel_bull   = ta.crossover(kernel_smooth, close)   // Kernel crosses above close = bottom forming
-kernel_bear   = ta.crossunder(kernel_smooth, close)   // Kernel crosses below close = top forming
 
 // ==========================================
 // 5. ML / KNN
@@ -468,14 +447,11 @@ if already_pullback_bought
     if remaining_pot_after_pullback < base_budget
         strong_signal_allowed := false  // Not enough pot for second signal
 
-// Kernel filter: require bullish kernel crossover OR price above MA200 (uptrend context)
-bool kernel_buy_ok = not use_kernel_filter or kernel_bull or close > ma200
-
 // Base strong condition: All core signals aligned (ML, MFI, CVD, cooldown respected)
 bool base_strong_condition = is_ml_bottom and is_strong_zone and is_cvd_bullish and not signal_flipped and (bar_index - last_strong_buy_bar > sb_cooldown)
 
 // TIER 1 & 2: FEAR/OVERSOLD (Strong signals) - Block each other, but NOT blocked by PULLBACK if pot exists
-if base_strong_condition and kernel_buy_ok and is_in_period and not already_strong_bought and strong_signal_allowed
+if base_strong_condition and is_in_period and not already_strong_bought and strong_signal_allowed
     // Tiered buy logic: Extreme dips (MAX) take priority over normal dips (STRONG)
     if close <= kijun  // Price must be in discount zone (below 26-period mid)
         if is_max_zone  // TIER 1: FEAR BUY (extreme panic)
@@ -493,7 +469,7 @@ is_ml_dca_ok = prob >= dca_ml_thresh
 
 // TIER 3: PULLBACK BUY - Less stringent, happens in healthy uptrends
 // Can coexist with OVERSOLD/FEAR if they use pot, but NOT on the same bar
-if is_in_period and not already_pullback_bought and is_pullback_zone and is_ml_dca_ok and kernel_buy_ok and not trigger_max and not trigger_strong
+if is_in_period and not already_pullback_bought and is_pullback_zone and is_ml_dca_ok and not trigger_max and not trigger_strong
     trigger_std := true
     last_std_buy_month := current_month_id
 
@@ -757,14 +733,6 @@ if barstate.islast and show_dash
     table.cell(dash, 0, r, "MFI", text_halign=text.align_left, text_color=color.white)
     table.cell(dash, 1, r, str.tostring(math.round(mf,1)), text_color=color.gray)
     table.cell(dash, 2, r, mfi_status_txt, text_color=mfi_status_col)
-    r += 1
-
-    // Kernel Regression
-    string kernel_status_txt = kernel_bull ? "BULL ✓" : (kernel_bear ? "BEAR ✗" : "IDLE")
-    color kernel_status_col = kernel_bull ? color.lime : (kernel_bear ? color.red : color.gray)
-    table.cell(dash, 0, r, "Kernel", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, use_kernel_filter ? str.tostring(math.round(kernel_smooth, 2)) : "OFF", text_color=color.gray)
-    table.cell(dash, 2, r, use_kernel_filter ? kernel_status_txt : "DISABLED", text_color=use_kernel_filter ? kernel_status_col : color.gray)
     r += 1
 
     // Signal Stability

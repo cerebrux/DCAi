@@ -696,11 +696,11 @@ float smart_ann_return = na
 float monthly_ann_return = na
 if not na(smart_first_bar) and smart_invested > 0
     int smart_days = bar_index - smart_first_bar
-    if smart_days >= 30
+    if smart_days >= 180
         smart_ann_return := math.pow(cur_smart_equity / smart_invested, 365.0 / smart_days) - 1.0
 if not na(monthly_first_bar) and monthly_invested > 0
     int monthly_days = bar_index - monthly_first_bar
-    if monthly_days >= 30
+    if monthly_days >= 180
         monthly_ann_return := math.pow(cur_monthly_equity / monthly_invested, 365.0 / monthly_days) - 1.0
 
 // ==========================================
@@ -814,8 +814,8 @@ if barstate.islast and show_dash
 
     // Annual Realised Return (if sold everything today)
     table.cell(dash, 0, r, "Ann. Return", text_halign=text.align_left, text_color=color.white)
-    table.cell(dash, 1, r, not na(smart_ann_return) ? str.tostring(smart_ann_return * 100, "#.##") + "%" : "N/A (<30d)", text_color=na(smart_ann_return) ? color.gray : (smart_ann_return >= 0 ? color.lime : color.red))
-    table.cell(dash, 2, r, not na(monthly_ann_return) ? str.tostring(monthly_ann_return * 100, "#.##") + "%" : "N/A (<30d)", text_color=na(monthly_ann_return) ? color.gray : (monthly_ann_return >= 0 ? color.gray : color.red))
+    table.cell(dash, 1, r, not na(smart_ann_return) ? str.tostring(smart_ann_return * 100, "#.##") + "%" : "N/A (<6m)", text_color=na(smart_ann_return) ? color.gray : (smart_ann_return >= 0 ? color.lime : color.red))
+    table.cell(dash, 2, r, not na(monthly_ann_return) ? str.tostring(monthly_ann_return * 100, "#.##") + "%" : "N/A (<6m)", text_color=na(monthly_ann_return) ? color.gray : (monthly_ann_return >= 0 ? color.gray : color.red))
     r += 1
 
     // Avg Entry Price
